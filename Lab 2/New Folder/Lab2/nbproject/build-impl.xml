@@ -1,0 +1,1652 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+*** GENERATED FROM project.xml - DO NOT EDIT  ***
+***         EDIT ../build.xml INSTEAD         ***
+
+For the purpose of easier reading the script
+is divided into following sections:
+
+  - initialization
+  - compilation
+  - jar
+  - execution
+  - debugging
+  - javadoc
+  - test compilation
+  - test execution
+  - test debugging
+  - applet
+  - cleanup
+
+        -->
+<project xmlns:if="ant:if" xmlns:j2seproject1="http://www.netbeans.org/ns/j2se-project/1" xmlns:j2seproject3="http://www.netbeans.org/ns/j2se-project/3" xmlns:jaxrpc="http://www.netbeans.org/ns/j2se-project/jax-rpc" xmlns:unless="ant:unless" basedir=".." default="default" name="Lab2-impl">
+    <fail message="Please build using Ant 1.8.0 or higher.">
+        <condition>
+            <not>
+                <antversion atleast="1.8.0"/>
+            </not>
+        </condition>
+    </fail>
+    <target depends="test,jar,javadoc" description="Build and test whole project." name="default"/>
+    <!-- 
+                ======================
+                INITIALIZATION SECTION 
+                ======================
+            -->
+    <target name="-pre-init">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="-pre-init" name="-init-private">
+        <property file="nbproject/private/config.properties"/>
+        <property file="nbproject/private/configs/${config}.properties"/>
+        <property file="nbproject/private/private.properties"/>
+    </target>
+    <target depends="-pre-init,-init-private" name="-init-user">
+        <property file="${user.properties.file}"/>
+        <!-- The two properties below are usually overridden -->
+        <!-- by the active platform. Just a fallback. -->
+        <property name="default.javac.source" value="1.6"/>
+        <property name="default.javac.target" value="1.6"/>
+    </target>
+    <target depends="-pre-init,-init-private,-init-user" name="-init-project">
+        <property file="nbproject/configs/${config}.properties"/>
+        <property file="nbproject/project.properties"/>
+    </target>
+    <target name="-init-modules-supported">
+        <condition property="modules.supported.internal" value="true">
+            <not>
+                <matches pattern="1\.[0-8](\..*)?" string="${javac.source}"/>
+            </not>
+        </condition>
+    </target>
+    <target depends="-init-modules-supported" if="modules.supported.internal" name="-init-macrodef-modulename">
+        <macrodef name="modulename" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute name="property"/>
+            <attribute name="sourcepath"/>
+            <sequential>
+                <loadresource property="@{property}" quiet="true">
+                    <javaresource classpath="@{sourcepath}" name="module-info.java" parentFirst="false"/>
+                    <filterchain>
+                        <stripjavacomments/>
+                        <linecontainsregexp>
+                            <regexp pattern="module .* \{"/>
+                        </linecontainsregexp>
+                        <tokenfilter>
+                            <linetokenizer/>
+                            <replaceregex flags="s" pattern="(\s*module\s+)(\S*)(\s*\{.*)" replace="\2"/>
+                        </tokenfilter>
+                        <striplinebreaks/>
+                    </filterchain>
+                </loadresource>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-modules-supported,-init-macrodef-modulename" if="modules.supported.internal" name="-init-source-module-properties">
+        <fail message="Java 9 support requires Ant 1.10.0 or higher.">
+            <condition>
+                <not>
+                    <antversion atleast="1.10.0"/>
+                </not>
+            </condition>
+        </fail>
+        <j2seproject3:modulename property="module.name" sourcepath="${src.dir}"/>
+        <condition property="named.module.internal">
+            <and>
+                <isset property="module.name"/>
+                <length length="0" string="${module.name}" when="greater"/>
+            </and>
+        </condition>
+        <condition property="unnamed.module.internal">
+            <not>
+                <isset property="named.module.internal"/>
+            </not>
+        </condition>
+        <property name="javac.modulepath" value=""/>
+        <property name="run.modulepath" value="${javac.modulepath}"/>
+        <property name="module.build.classes.dir" value="${build.classes.dir}"/>
+        <property name="debug.modulepath" value="${run.modulepath}"/>
+        <property name="javac.upgrademodulepath" value=""/>
+        <property name="run.upgrademodulepath" value="${javac.upgrademodulepath}"/>
+        <condition else="" property="javac.systemmodulepath.cmd.line.arg" value="--system '${javac.systemmodulepath}'">
+            <and>
+                <isset property="javac.systemmodulepath"/>
+                <length length="0" string="${javac.systemmodulepath}" when="greater"/>
+            </and>
+        </condition>
+        <property name="dist.jlink.dir" value="${dist.dir}/jlink"/>
+        <property name="dist.jlink.output" value="${dist.jlink.dir}/${application.title}"/>
+        <property name="module.name" value=""/>
+    </target>
+    <target depends="-pre-init,-init-private,-init-user,-init-project,-init-macrodef-property,-init-modules-supported" name="-do-init">
+        <property name="platform.java" value="${java.home}/bin/java"/>
+        <available file="${manifest.file}" property="manifest.available"/>
+        <condition property="splashscreen.available">
+            <and>
+                <not>
+                    <equals arg1="${application.splash}" arg2="" trim="true"/>
+                </not>
+                <available file="${application.splash}"/>
+            </and>
+        </condition>
+        <condition property="main.class.available">
+            <and>
+                <isset property="main.class"/>
+                <not>
+                    <equals arg1="${main.class}" arg2="" trim="true"/>
+                </not>
+            </and>
+        </condition>
+        <condition property="profile.available">
+            <and>
+                <isset property="javac.profile"/>
+                <length length="0" string="${javac.profile}" when="greater"/>
+                <not>
+                    <matches pattern="1\.[0-7](\..*)?" string="${javac.source}"/>
+                </not>
+            </and>
+        </condition>
+        <condition property="do.archive">
+            <or>
+                <not>
+                    <istrue value="${jar.archive.disabled}"/>
+                </not>
+                <istrue value="${not.archive.disabled}"/>
+            </or>
+        </condition>
+        <condition property="do.mkdist">
+            <and>
+                <isset property="do.archive"/>
+                <isset property="libs.CopyLibs.classpath"/>
+                <not>
+                    <istrue value="${mkdist.disabled}"/>
+                </not>
+                <not>
+                    <istrue value="${modules.supported.internal}"/>
+                </not>
+            </and>
+        </condition>
+        <condition property="do.archive+manifest.available">
+            <and>
+                <isset property="manifest.available"/>
+                <istrue value="${do.archive}"/>
+            </and>
+        </condition>
+        <condition property="do.archive+main.class.available">
+            <and>
+                <isset property="main.class.available"/>
+                <istrue value="${do.archive}"/>
+            </and>
+        </condition>
+        <condition property="do.archive+splashscreen.available">
+            <and>
+                <isset property="splashscreen.available"/>
+                <istrue value="${do.archive}"/>
+            </and>
+        </condition>
+        <condition property="do.archive+profile.available">
+            <and>
+                <isset property="profile.available"/>
+                <istrue value="${do.archive}"/>
+            </and>
+        </condition>
+        <condition property="have.tests">
+            <or>
+                <available file="${test.src.dir}"/>
+            </or>
+        </condition>
+        <condition property="have.sources">
+            <or>
+                <available file="${src.dir}"/>
+            </or>
+        </condition>
+        <condition property="netbeans.home+have.tests">
+            <and>
+                <isset property="netbeans.home"/>
+                <isset property="have.tests"/>
+            </and>
+        </condition>
+        <condition property="no.javadoc.preview">
+            <and>
+                <isset property="javadoc.preview"/>
+                <isfalse value="${javadoc.preview}"/>
+            </and>
+        </condition>
+        <property name="run.jvmargs" value=""/>
+        <property name="run.jvmargs.ide" value=""/>
+        <property name="javac.compilerargs" value=""/>
+        <property name="work.dir" value="${basedir}"/>
+        <condition property="no.deps">
+            <and>
+                <istrue value="${no.dependencies}"/>
+            </and>
+        </condition>
+        <property name="javac.debug" value="true"/>
+        <property name="javadoc.preview" value="true"/>
+        <property name="application.args" value=""/>
+        <property name="source.encoding" value="${file.encoding}"/>
+        <property name="runtime.encoding" value="${source.encoding}"/>
+        <property name="manifest.encoding" value="${source.encoding}"/>
+        <condition property="javadoc.encoding.used" value="${javadoc.encoding}">
+            <and>
+                <isset property="javadoc.encoding"/>
+                <not>
+                    <equals arg1="${javadoc.encoding}" arg2=""/>
+                </not>
+            </and>
+        </condition>
+        <property name="javadoc.encoding.used" value="${source.encoding}"/>
+        <property name="includes" value="**"/>
+        <property name="excludes" value=""/>
+        <property name="do.depend" value="false"/>
+        <condition property="do.depend.true">
+            <istrue value="${do.depend}"/>
+        </condition>
+        <path id="endorsed.classpath.path" path="${endorsed.classpath}"/>
+        <condition else="" property="endorsed.classpath.cmd.line.arg" value="-Xbootclasspath/p:'${toString:endorsed.classpath.path}'">
+            <and>
+                <isset property="endorsed.classpath"/>
+                <not>
+                    <equals arg1="${endorsed.classpath}" arg2="" trim="true"/>
+                </not>
+            </and>
+        </condition>
+        <condition else="" property="javac.profile.cmd.line.arg" value="-profile ${javac.profile}">
+            <isset property="profile.available"/>
+        </condition>
+        <condition else="false" property="jdkBug6558476">
+            <and>
+                <matches pattern="1\.[56]" string="${java.specification.version}"/>
+                <not>
+                    <os family="unix"/>
+                </not>
+            </and>
+        </condition>
+        <condition else="false" property="javac.fork">
+            <or>
+                <istrue value="${jdkBug6558476}"/>
+                <istrue value="${javac.external.vm}"/>
+            </or>
+        </condition>
+        <property name="jar.index" value="false"/>
+        <property name="jar.index.metainf" value="${jar.index}"/>
+        <property name="copylibs.rebase" value="true"/>
+        <available file="${meta.inf.dir}/persistence.xml" property="has.persistence.xml"/>
+        <condition property="junit.available">
+            <or>
+                <available classname="org.junit.Test" classpath="${run.test.classpath}"/>
+                <available classname="junit.framework.Test" classpath="${run.test.classpath}"/>
+            </or>
+        </condition>
+        <condition property="testng.available">
+            <available classname="org.testng.annotations.Test" classpath="${run.test.classpath}"/>
+        </condition>
+        <condition property="junit+testng.available">
+            <and>
+                <istrue value="${junit.available}"/>
+                <istrue value="${testng.available}"/>
+            </and>
+        </condition>
+        <condition else="testng" property="testng.mode" value="mixed">
+            <istrue value="${junit+testng.available}"/>
+        </condition>
+        <condition else="" property="testng.debug.mode" value="-mixed">
+            <istrue value="${junit+testng.available}"/>
+        </condition>
+        <property name="java.failonerror" value="true"/>
+    </target>
+    <target name="-post-init">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="-pre-init,-init-private,-init-user,-init-project,-do-init" name="-init-check">
+        <fail unless="src.dir">Must set src.dir</fail>
+        <fail unless="test.src.dir">Must set test.src.dir</fail>
+        <fail unless="build.dir">Must set build.dir</fail>
+        <fail unless="dist.dir">Must set dist.dir</fail>
+        <fail unless="build.classes.dir">Must set build.classes.dir</fail>
+        <fail unless="dist.javadoc.dir">Must set dist.javadoc.dir</fail>
+        <fail unless="build.test.classes.dir">Must set build.test.classes.dir</fail>
+        <fail unless="build.test.results.dir">Must set build.test.results.dir</fail>
+        <fail unless="build.classes.excludes">Must set build.classes.excludes</fail>
+        <fail unless="dist.jar">Must set dist.jar</fail>
+    </target>
+    <target name="-init-macrodef-property">
+        <macrodef name="property" uri="http://www.netbeans.org/ns/j2se-project/1">
+            <attribute name="name"/>
+            <attribute name="value"/>
+            <sequential>
+                <property name="@{name}" value="${@{value}}"/>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-ap-cmdline-properties,-init-source-module-properties" if="modules.supported.internal" name="-init-macrodef-javac-with-module">
+        <macrodef name="javac" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${src.dir}" name="srcdir"/>
+            <attribute default="${build.classes.dir}" name="destdir"/>
+            <attribute default="${javac.classpath}" name="classpath"/>
+            <attribute default="${javac.modulepath}" name="modulepath"/>
+            <attribute default="${javac.upgrademodulepath}" name="upgrademodulepath"/>
+            <attribute default="${javac.processorpath}" name="processorpath"/>
+            <attribute default="${javac.processormodulepath}" name="processormodulepath"/>
+            <attribute default="${build.generated.sources.dir}/ap-source-output" name="apgeneratedsrcdir"/>
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="${javac.debug}" name="debug"/>
+            <attribute default="${empty.dir}" name="sourcepath" unless:set="named.module.internal"/>
+            <attribute default="${src.dir}" if:set="named.module.internal" name="sourcepath"/>
+            <attribute default="${empty.dir}" name="gensrcdir"/>
+            <element name="customize" optional="true"/>
+            <sequential>
+                <condition property="warn.excludes.internal">
+                    <and>
+                        <isset property="named.module.internal"/>
+                        <length length="0" string="@{excludes}" trim="true" when="greater"/>
+                    </and>
+                </condition>
+                <echo if:set="warn.excludes.internal" level="warning" message="The javac excludes are not supported in the JDK 9 Named Module."/>
+                <property location="${build.dir}/empty" name="empty.dir"/>
+                <mkdir dir="${empty.dir}"/>
+                <mkdir dir="@{apgeneratedsrcdir}/?
+           ∞0(  <gnndition prnperv9="pro#essÔrmodılepath.sat">
+    (             " <resourcec~unt count="0"`wimn?bgrmater">
+                ( `     <qathæ
+ !!               $         <pathÂlem%nÙ path="D{proses3ormolulepath}">
+       ! ∞ `         `  </p`th>
+  §      `$     † $ </resourcecotnt>
+ "        †     </cgndation
+"  !          `2<javac debeg=2P{$ebug}" deprecataon=*${*ave#.de0rEbation]" destdir="@{destdir}" encoding?"${soUr„e.enco`ing}" excludes="@;exclu‰es}" fork="d{jaracÆFork}" È~cludeantbuntiMe="false" includes="@{includes}" source="${javac.soprce}" sourcepath="B{source0avh}" srcdir="@{srcdAr}" Target="${*arqctargetm" te}pdir="${java.ikÆtmpdir}">
+    0(           !  <sRc>
+    0   ( (  `          4d)rset dir="@{gensrcdir}" errobonmissinfdir="galse">	
+          "     (           <include name="*"/>
+$           $"          </di2Set>
+         !          |/ssc*
+        `    "      <classpatH>M
+   0   (  ` "          <paÙh path="`{clasrPqth}"/>
+      †             </slasspatx>
+                 $  <modulapavh>
+                        <pith path="@{mkdu,eq@th}"Ø>
+0     !         (§  </modulepath
+              ` ( $ <upgrademoduLgpath>
+               `     ($ <path path5"@zepgrademodulepat(]"/>
+         "     `    =/u0grademotulepa`h>
+(                   <compilerarg line="&{javac.systemmdUnepath.cmd&lËne.arf}"/>
+                   †|coÌpilerarg lane=&${javac.qrofile.cme.line.argu*/>
+            0      "<colpilerarg line="4{javac.compilerqrgs}"/>
+`  0   0",        ( <compiÃerarg if:set="processormodulepaTh.set" va,ue-"--processgr-moduhe-path"/>
+   $    0        ®  |co-pilerapghif:set="pro#ussMrmodulepAth.set" rath="@{procersnrmodulepath}"+>*            ,       <compilerabg unness:set="processo2modueep`dh.set" valum<"-processorPa4h"/>
+  `         $ "   † <co=pilerarg path="@zprcessor`ath}:%{empty>dir}" 5nlars:set="procesÛormo‰ulepath.seu"/>
+        `   (       <comqilerarg line="${ip.processovs/internal}"/>
+               `  a >compÈlerqrg line="${annotation.pr/cessing.processor.o0tigns}"/>
+                    <cmmpilmsarg value="-s"->
+                    <coepiderarg path="@{apgeneratedsrcdir"/>
+   † `(             <compileÚarf line="${ap.proc.none.internal˝"/>
+      †            0<ctstkmixe/>
+                </javIc>
+            </sequential>
+        4/macroduv>
+    <.targ%t>
+    <target depends="-init-ap-cmdline-propeppies,-init-courcemmodule-ppgperdies" if="ap.suqpopted.inpesnql" name="-init-maarodef-j!wac-with-trocessors# unluws="modules.supq/rted.internal">      † <ma#rodef name=*havac" uri= htt0"//www.netbeans,ore/nÛ/j2se-projebt?3">
+      †     attribute default="${src.dir}" name="sÚcdir"/>
+      †     <attribute default9"${build.clissesÆdip}" name="`estdir"/2
+    °   !   <atd2ibute def`ult<"$;bavac.classpatl}" naee="classp`th"/>
+            <attribute ‰aFatlt="${ja6ac.moduÏetath}" namm="mo`ule`ath"/>
+            <adtr)bute default?"${ja~ac.upgrademodulepath}" nale="upgra‰emodulapat`"/>
+0      !b  "<autributd fefault="%yjatAc.psosessorpath} name="p2ocessozpath"/>
+          $ attrir5tı$defaılt="§{fuild.gÂnerated.sources.dir/ap-source-output" namÂ="apgeneratetrRcdxÚ*/>ä(   `      $<atdribute $efault="&[includeÛm* Name5"includu{"/>
+           !<attbijute def·ult=+${excludes}" n`me="excludec"/>
+            <attribute lefault="${javac.ddbug}" fale=2dmbug"/>
+$0(         <attribupd defau|t="${emptË.di2}"0name="souvCepaTh"/?
+`         ` =atTzibete default=2,kempty.dir}" naee="gensrcdir"/>
+            <element name9"customize"0ortËona,9"true"/>
+ (†     `   <sequential6M
+ $             "<ppopgrty locauion="${bti,f.diz}/empty" name=e-pty.dip"/.
+†               8}idir dir="${cmxty.tir}"/>
+       $  $    $<mkdÈr dir="@{apge~eRApedrÚcd)r}/>$             ` <jav`c debtg"@{`ujqf}" deppEcation="$sjqwac.deprecation}" Dewteir="@{destdir}" 'jcmdilg="${snurke*encoding=" excÏudes="@{Âxclu`Âs}" fgrk=&{jAvcc.frk}" includeantrunthme="false" ioCludes="@{ilbluees}" soqrgg="${javac,courcd}" sour„epath="@{sourcepath}" w2ceir="@{srcd˘r}" target="${navac.targev}" tem0dir<"${java.io'tmdir}">ç
+               †    <src>
+     !                  ,dirset dir="@{gensrcdir}¢ evroÚonmiÛqingdir="fAmseb>
+        !        $  !      †<include namg=¢*"/>
+      !    0       (( ( t-dirsut>
+` †                 </{Úc>
+ †   †    †        $<„liss`ath>
+      $  $       (      <path patË="`zqlasspath}"/>
+              `     </cdasspath>
+ 0                  <compilesave lÈne="${endorsud.classpath.cmd&laoe.arg|"/>
+                !   <comxilerarg(mine="${javac.provile.cmd.line.arw}"/>
+    &               <conpilararg line="${jqvac.compilerargÛ}b/>
+       "( $         4compilerarg valee=*-qrÔcmssorpa|h"/:
+            !       <compilerarg path="@{pzoces{orpath|;$yempty.dir}"/6
+ `(( †       (      <com`ilerarg li.e="${ap.pro#essjrsninder~al}"/>
+                0   <compilerarg line="${alootauion.proce{sing.psocessor.kptions}"/:
+        0        `$ <compilerarg valee=2-s".>
+            0       <coepilErarg path=b@zipge&dbatedsrcd)r="/>
+    $  a  ` `  "  ( |compiherarg linÂ9"$zap.proc.none.ijÙErfal}"-?
+               ` 0  <kuctomize/>
+( †        0    </havac>
+ † ` †  †   </seqtenticl>
+      0 <macrndef>
+    º/targeu>
+0 ` ºtarget depdnds="-init-ap-c}dnine=propertiÂs(-ifit-sourge-modu,}-qropertÈes2"namd="-)nit-ma„roeef-havac-without-qrocessobs¢ ulless="ap.supporÙed.interfe,".
+     $  <macrodef name="javqc" uri="http8/-www?nutbeafc*/fg/n„/j2re-prozest/3&>
+        !   <!ttribute `efault<b%{srC.dir|" naie="srcdiR"->
+            <!4t2ibute default="${buii$.classEs.dir  name=`destdir"/>  0    `    <atpribute defauÏt="${javacØclasspatl}¢ Óame="classpath"/>
+0(          <autzibute default="$javaa.mod}leath}" name="mˇdulepaph"/>
+  $  (      <atTÚÎbutd default5 ${Í·vac.upgradg-o,ulepath}" nama= upcradamodulerath"+>
+      0     ,qttribute ‰dfaul4="${javacÆprocessorpath}" .aie-"processor ath"Æ.J       %    <attribute def`uÌ$=b${build.ggnepited.sourcÂs.dir}/ap-so}rce)outut" na}e="apfe.%batedsrbeir"/>
+ †0  "0 †  0<attrib5te defaend="${includes}""name="Èncledds"/>
+"    †0     |adtriBut'(defawld="${excludes}" n`me="Â8cludes"/>
+      $  (" <!dtribıte d%f!ult=" {Íav·c.debugm" naeeΩ"debug"/>
+   0        =attribute†devault="${empuy.dir˝" nalu="so5zcupath"/>	
+ †          <attRi‚ute default="${empty.d)2}" Óame="gensradir"/>
+  !         <edmment n%mu="cuÛtomize" opti/ni,<"tbue"/>
+® †(0  "8   <seq5ential>
+              p <propebty lngation="${build.diz}.empty"†name="empty.dir"/>(        (  !  !<midyr$disΩ# {emr`9.$ir}"/?
+0    !     0 !  4javac debuc="@{dEbug}" deprecqtiol-¢${havac.deprecAtion}" ddctehrº"@{destdiRu"†enc/ding="${s~urce.en„ndin'}" exc|udes="@{exc|udes}" fork="${javakÓfork˝" ingluda~trq.time5&fls%  includas="@{inbÏufes}  smtrce=2${javaa.smurce}" sourceati-"@;soqrca`at`}" sv„dir="@{szc`ir}"`tabgmt="${javAc.ta2gepq2,temp‰ir="${jav!fin.tipdir}">
+     0         †    |sva>
+                  $    †<dirkeu dir="A{wens≤cdir}" erro2onmissingdir="fclsg>   0            "      !!   <in#lıde Óimey"*¢/>
+        $ `            †|/dirsat>
+ `                  <+src>ç
+      1        $∞†  <classpath>ä `                 †    <p`th(p·th="¿{ch·scrat8u"'>
+        # †         </chasspith>
+   (  `0            xc}-pilDrarg$lineµ¢${endorse$.c,qsspath.cmd.line.arg}"/>  (†                <colpilararg line}"$kjcva#.proFÈl%.cld.line.·Ú'}"/     " "   !   †  ` <compilerÂrÔ`linu="$˚javac.compÈlurargs}¢/>	
+ !    †      !      <cusTnlaze/>
+!!       "     `4/javac>ç
+†           8/cequential>
+ %  b   </magrodef>*    </taRgmt
+   $,Ùareet dd en`s="-ifit)Ìigrodef-jatac=w{Vh)m}dulg--inid-Macrkdef-javab•w)vj-processor{,-iÓat-eacrodef-javac-s)dhout-pvkcwssops" nime="-inid-macrodef-j vaa">
+  ®     =macroden jame=bdepeld"†eri=*http://ˇww¨levbeans.org/js-j2se≠ppokekT'3"v  !  !      <attribute dufp}lÙ="${svc.d`r}" n·me="srceor />
+           `<ÂtÙribute defaund=*${build.c,assgÛ*`ir}" .a)m<"$astdir />
+   (        <itt2ibq|e default="${jata„.cd¡ssp·t(˝2 name="clAsspevh"/>
+  08      $ <sequÂntI@n>
+ $` †      †    <depend cAche="$ybuild.dip}'deucac`Â" deytdir=+ {dastdiry2†exc,wdes="${ehcluddqm" inkludgs8"d{inclteEs}*&qrcdqzø"@{{rcdir|">     "! †         anasÛpath>%
+    0"   `0  †   $ 82$  <path ppth9"@xclasspath=b/> `   "        °†!   </class0Èth>
+ †   &    (0   <7Dgpeld> †     ! $  </#eqaenti·$>     "  ,'mkarn`%f>
+9 (   ,®<iacrodgv namÂ="forceregmmpiid" uri="Ë4wp:--vww.|etbe`Ós"oRÁ-ns/j2s%-projebt/3"æä     "$ `†0 <attri‚utu#tdfadlÙ="${bu`lt.ch%qsas.dhr}"0name,destdir"/>
+
+     (      <Ûeauen|iAl>
+$ b   0 , !     <fsi,0µn$es≥="jafa{.inbludes?Musu set Íavac.)nc,uddaº/Ê·anz
+   ! 0" †       <pir®.ver4 pathsep="${linf.sear!tg6|" prope2ry-"h‡◊acéyncÏudes.binir{">H    `(     †!‡ †    <path>     $ ` & * 0          tvÈledyrt"d)r="@{dÂstdiv="0filesπ ${j°ˆac.incluees}"/>
+" `     "0   (      4/0ath>≠
+" $†`¢"   (  ∞†(  ° <glob-iP4!r ÓÚkm=2*,z!va" d/8"*&gdaÛq"/> ($  "     $  0°4/pathco*vert. !   (  (`  $  ( <UEmpnil% dal%teonex…t="t2}g"$prnPerty}"jat`g*`ncÏutUsfile.bincry"/>
+  † $!   !      <Echg ˛ile=2${javac*insludÂsfine.binarqˇb¸eqsage="${j·~ab.ina$udeq.rioar˘}"/>
+    (     (` (0 <dele4e>
+                    <fi|es includasfile="4{javac.includesfile.b)nary}"/>
+!             " ,+d5lete>
+        0       >aelete>Õ
+   ¢!    $          <fih%red file="${java„.includesfile.bhnary}"/>
+                </delete>
+           `</sequential>
+        4/macrodef>
+    </taroed>
+    <targÂt af="§{junit.avaÈnabld}" name=*%init%macroded-juniÙ-init">
+    †   <condidion else="balse" property="nb.junit.batch" value="true">
+            <and~
+     "    !  †  <istrue vahue="${junit.aveiÏable}"/>
+ "      $       <fot>                    <isset proqdrty="testnmethod"/>
+    `   0  0    </not>
+    0       8/and>
+    0   </condition>
+   `    <condition(el3e9"false  property9"nb.junit.Ûingle" value="true":
+     "      <·nd>
+                <istruÂ vhlue=&${junit/avail·ble}"/>
+  `             8iqsut†property="test.method"/:
+            </and
+        </condityon>
+   †4/targgv.
+    <targgt name="-inIt-test-pro`erties">
+(       <property name="test.b)naryincludes" value="&lt;nothijg&ft;"/>
+       "<propdbty naMa="test.binabytastincludes" ValQe=v"/>
+   !    protert} name=&4uSt.binaryexcludes""value""o    </target>-J    ,target de`mnd3="-init-motunes-supporte‰" Hn9"modules.supkÚtÂd.intern`l" lame"-init-E·krod%f-hunit-prÁtou{pÂ-with-m/dıÏa¢>
+      0 8macbodÂf name="juniv-prototype" uri="http://wwg+net`eans.org/ns/j2s'-project/3">
+          † <attrabute defaelt="${includesm" name="includms"/>
+ "         `<adtrIbete defaultΩ${excludes}" name="excludes"/>
+            <eÏoment name="curtomi{eprototype""otpaoÓal="trqe"'>
+            <sequential>
+  `             <pro%~ty name="junht&for{mode"0v·lue="perTest"/>
+    p           |junit dir="${sork.liz}" errorproperti="tests.gaile$" failurepv`erty="tests.faiÏed"(fork="true" fopkmode="${j}nat>fnpsmode}" showoatput="true"`tempdir="${build.dip}">
+       (            ,s}spropertyset> "       `      $       <prÔperdyref prefix="tewt-syw`rop."/>
+   #           0 !      <ma`per from="te{t-sys-pbo`.(" to="*" type<"gnob"/>
+           (    $   </syspr/pertyset>
+     †     0        <clasqpaÙh>       h     $          (`eth pqth;"${run.test.classpath}"/>!`            "    </clqcsppth>
+     $  !           <modulgpatl>
+         `             "<path path="&;run.test.mo‰uLÂpa4l}"/>
+        `  `  0     </ondulepav(>
+ "    (    `        <fobmAtter |ype="bridf" usefiLe="dal3e"/>
+    !           " "4fmrÌavder type="iil"/>≠
+  0     †          0<jfmarg!li~e="${end/rs%d.clacapatl*codÆlineéasg}"?>
+ 2 $   †           `<jvmqrÁ Value="-ma"/6
+`†   †  0           <jrmarg line<¢${rqn$test*zVmargs}"/>
+         0         <cuÛtom)zmProuÔtypeØ>	
+            "   <+junit?
+(  !        </seqme.paql>
+        <.mabrodÂf>
+    </|`rget>
+ `! <target depgods=",hniv-modddes-surported" name="-inoP-macrodgf-junit-protnt8pe-withou4-module" tbless="modules.suppor|e‰.intur.‡l,
+    †   <makrodef nam}="bufyp-prototxpe""wri=xttp://www.neTbe!ns.mrg/nsoh2s$-project+3">	J §!       $ <attvibqte defauft="$sincÏuees}2 name="Inc|ufes +<ç
+        `   <attrifete tefault="$˚}xcludeq}¢ name="ex„dude{b-6
+         (  <ele˝ent namÂ="customizuPrOtotqd" optional5"true"/>
+  0         <w%queo}Èad>  "      !(  " 8property n1me9*junit.Foskmode"!value9"pe˙Wesu*/>
+    `    (      <junit dip}"$ywork,‰iv}" %rrnrqro`erty}"tewt3Æf!i|ed" faiÏuraprotebuy9&turts.failed  fopk=b¸sue" for+mofe=" {jun)t.forkoDe}" showoulput<"Ùbue" tempd)r5"$sbuil$dar}&>
+  (          0      8syspropepuyÛ$t>
+`                   " ! <propertyref `renix="test-sys%PRo`."/~
+         $$ $           4m`pqer from≠"teqt≠{ys-prop.*"
+tm="*" typu5"glob2/>
+                   4/1ysprÔpdrtycet>
+ 0           $$  ¢ 0<classpath>	
+           †   !     $! <pati"pe4h="${run.tert¨chaS¢path}"/>
+§      0        `0  </casspath>
+†               0   <&ormadTer†thpÂ-"brief" usefile="galwe"/>   !  a (     $     formattertype9"xml"/ç
+0  !  $` !        (0<jvmarg line="${endorRed.glassraÙh.C-d.line.are|"/>
+†              $!   <jtearg Value="-ea"+>
+!!†`   †       4    4CustomizePrototype/>
+    $ "$ (      </jt~)t:	$     (   0</seq}en4)al6ç
+$       </mac‚Ô`Ân~
+    </taÚgdt>
+    <targep†depends=!-init-|est-psgper4ieÛ,-)lit-mQcro`ef-junid-pRototypa/wath%moduleÏ-iokt-Macrgfe6-n}jit-prototyrÂ7ythout-mmdule"0È"Ω"$onb/juniv.singl‰y" name="-Ènit/magrk$ed-juniÙ%single" ujlecs=$${nb.jqoit.bcgch}*>
+   (†   <macro‡ef Óame="juÓit" uri="httt:/.7ww.netbecns.oÚg/.sØj2se-prghecT/3">
+    !   ®!  <attribtÙe default5"${in#LudÂs} name"Inclu%es"/>
+  †‡p`(†  " <attricute†defauld="${excnudes}" jame= mx#ludes"'>
+0   !       <a4trÈb}te de&ault=¢**" jame="testan'mude3"/>
+   "       (<attrib5td defaulu="" na-e92testletlods".> !          <eÏemeft Óame=*cıStoÌize" opÙio.al}£tpua"/>
+   " ! "( " <se1ueltÈal>-
+       !3  0   <j2sePrgjgct3:nunit-protdy0u^-
+        `†( $       <cu˜~omizıPrototype<
+ $     †   † p        ! <test -m|hod{="@{testmeÙhods}" name=# {vaÚtincHude{}" todir=≤$zbuild.test.r%sultq/dir9£?6™ `(    †         !   `  <c’q|omyze/:
+  "  ®    "     †0 0</cÙ„tolizePrtotype>
+`             " </j2se0Ro*ast3:hunit-proÙotype6    $  !    ºØsequendiaD>
+  (   $</eikrmde66-"#(†<.tarce|< †  }target $Epends?¢)iniv-vewt-prØpervies&-ini0,mqcÛkdÂ&,jTnivÌpropotype-with-Ìdule,-init-magrodef•juoitmprgpovypa-ithout-mOdtle"'if="$[ndjjuNit.batch}" name=2}init-macrmdef-jqnit-bat„h""unddss="${fb.jUnit.s)lgle}"~
+  !    `8ma„Ú/ddf name="jena|" }rh="http:/?wwu.lut¢eins.obg/ns/J2Îe-prmja„t/≤2<
+        ( 0 <A4trybe|e` e&ault?¢$zincludes}""nae˜5"inCludes0/>
+      !   ( ,attrÈbt4e`dUfauht82${excludes nama-"exc,ulesØ?
+   0  †     <avtri`ve defauLt="**# fa-qº"tEsvI~cÏuDea"£>
+    `(  0   <attpijqte e'vaelt="" n`}EΩ#testeethmds"'>
+  0† 0  (`  8eÏdMent name="Ous<oiyze" otThon·l=urue"Ø
+$0     0    <sequenuiqd<
+       (  ((    ºj2seyzoKdct≥:j5lkt-0RtodyÚe>
+   †   `` !"    `   <cwsdomhzePrototyreæ
+  $    $$ (`!† $    0` #8batKËvesr todib="${build.tesp&raculpsdib|">
+ † !            i (  Ò    $<fileÚ%Ù di22$yteqt.src/l·ri" ex„ludesπ@jex#ludes},$˚excludesu" ifCludes="@{inclt‰e#u±>(  (     †   ` !∞    !!0"    ` @<oilaNc-e!Name="@{testIlklu‰es}"æ≠`  ` "#  †0 0! $     0 #† †,/viLlÛe4~
+  2†     ("  4   ¢† 0 $ †   :ÁÈlezet D{r<,{bµyl`,‰e‚v¶*lassmq&dir}" excl%des="@z}xC,uƒÂ}(•{ePalu$er|*${~ur4ÆbIf`rq$¸#lue$s}¢ Ànclud%s-:yvdsP.Êijarik~clud≈sn">-J `    ` #!$  †$   !`@`( ¢    1  4didmnqmÂ jqme="Äytu{‡.rhnarytertiÏ¢`fDewx"/•
+     `  !     ‡!b"(¢$ `(  $</f},erev>
+$ 0‡ ≤$     ( ("   !!` $,-f`tcËwe”t>"`+0    "`"0& †( Ä (  †$ 8cuÙolizeo>	
+` `( ((   (    0`  -cusÙgmi{%Protgt=peæ
+  d   †00†  ‡( !</{3seroJek$3jÍu.i|-`rotÔtye>-
+a†" ) †  0 !,Øs`pıuntmal~`†   ! 8/macpo‰efM! $ <>|arcÂtæç
+(   4darl%Ù0eepÁfdsΩ"=ina6)-acÚo`gF,juNi4-ikIt,-xNi|-oaC2ofufdjunju°singhe,†mKb9t-%3cpode&-JuÆit-batcË" mfº2$[j5~At.·vaila`mmm†(nam'"-in!p-mÈcbo`‰ÁjuÓi6"/æ
+(b $<papfet iF?#{4u∑0nc.awaho`"lm}≤0n·le-")init-Ì!crodef-tI3tng"ÆI$0 !Ä 1 <oacpo$ef ncye="tesdno$urc-"lÙtp.=www,nedbianS&ofg?nw/j2vg-xroje„t/3>>ä!$    (   "!>attrÈbutu de&qulur${ilclqleq}* .ÎLg"IGlqdea"/;=0"  0  §    !tur(Úute!dÂf·u.tΩ"esgxcnu`ec˚s n!©}5#axcludÂw"o>     (   (‡ |apıroreTA dudqıÔt=‚**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <element name="customize" optional="true"/>
+            <sequential>
+                <condition else="" property="testng.methods.arg" value="@{testincludes}.@{testmethods}">
+                    <isset property="test.method"/>
+                </condition>
+                <union id="test.set">
+                    <fileset dir="${test.src.dir}" excludes="@{excludes},**/*.xml,${excludes}" includes="@{includes}">
+                        <filename name="@{testincludes}"/>
+                    </fileset>
+                </union>
+                <taskdef classname="org.testng.TestNGAntTask" classpath="${run.test.classpath}" name="testng"/>
+                <testng classfilesetref="test.set" failureProperty="tests.failed" listeners="org.testng.reporters.VerboseReporter" methods="${testng.methods.arg}" mode="${testng.mode}" outputdir="${build.test.results.dir}" suitename="Lab2" testname="TestNG tests" workingDir="${work.dir}">
+                    <xmlfileset dir="${build.test.classes.dir}" includes="@{testincludes}"/>
+                    <propertyset>
+                        <propertyref prefix="test-sys-prop."/>
+                        <mapper from="test-sys-prop.*" to="*" type="glob"/>
+                    </propertyset>
+                    <classpath>
+                        <path path="${run.test.classpath}"/>
+                    </classpath>
+                    <jvmarg line="${endorsed.classpath.cmd.line.arg}"/>
+                    <customize/>
+                </testng>
+            </sequential>
+        </macrodef>
+    </target>
+    <target name="-init-macrodef-test-impl">
+        <macrodef name="test-impl" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <element implicit="true" name="customize" optional="true"/>
+            <sequential>
+                <echo>No tests executed.</echo>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-junit" if="${junit.available}" name="-init-macrodef-junit-impl">
+        <macrodef name="test-impl" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <element implicit="true" name="customize" optional="true"/>
+            <sequential>
+                <j2seproject3:junit excludes="@{excludes}" includes="@{includes}" testincludes="@{testincludes}" testmethods="@{testmethods}">
+                    <customize/>
+                </j2seproject3:junit>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-testng" if="${testng.available}" name="-init-macrodef-testng-impl">
+        <macrodef name="test-impl" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <element implicit="true" name="customize" optional="true"/>
+            <sequential>
+                <j2seproject3:testng excludes="@{excludes}" includes="@{includes}" testincludes="@{testincludes}" testmethods="@{testmethods}">
+                    <customize/>
+                </j2seproject3:testng>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-test-impl,-init-macrodef-junit-impl,-init-macrodef-testng-impl" name="-init-macrodef-test">
+        <macrodef name="test" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <sequential>
+                <j2seproject3:test-impl excludes="@{excludes}" includes="@{includes}" testincludes="@{testincludes}" testmethods="@{testmethods}">
+                    <customize>
+                        <jvmarg line="${run.jvmargs}"/>
+                        <jvmarg line="${run.jvmargs.ide}"/>
+                    </customize>
+                </j2seproject3:test-impl>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-junit" if="${junit.available}" name="-init-macrodef-junit-debug-impl">
+        <macrodef name="test-debug-impl" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <element name="customizeDebuggee" optional="true"/>
+            <sequential>
+                <j2seproject3:junit excludes="@{excludes}" includes="@{includes}" testincludes="@{testincludes}" testmethods="@{testmethods}">
+                    <customize>
+                        <jvmarg value="-agentlib:jdwp=transport=${debug-transport},address=${jpda.address}"/>
+                        <customizeDebuggee/>
+                    </customize>
+                </j2seproject3:junit>
+            </sequential>
+        </macrodef>
+    </target>
+    <target if="${testng.available}" name="-init-macrodef-testng-debug">
+        <macrodef name="testng-debug" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${main.class}" name="testClass"/>
+            <attribute default="" name="testMethod"/>
+            <element name="customize2" optional="true"/>
+            <sequential>
+                <condition else="-testclass @{testClass}" property="test.class.or.method" value="-methods @{testClass}.@{testMethod}">
+                    <isset property="test.method"/>
+                </condition>
+                <condition else="-suitename Lab2 -testname @{testClass} ${test.class.or.method}" property="testng.cmd.args" value="@{testClass}">
+                    <matches pattern=".*\.xml" string="@{testClass}"/>
+                </condition>
+                <delete dir="${build.test.results.dir}" quiet="true"/>
+                <mkdir dir="${build.test.results.dir}"/>
+                <j2seproject3:debug classname="org.testng.TestNG" classpath="${debug.test.classpath}">
+                    <customizeDebuggee>
+                        <customize2/>
+                        <jvmarg value="-ea"/>
+                        <arg line="${testng.debug.mode}"/>
+                        <arg line="-d ${build.test.results.dir}"/>
+                        <arg line="-listener org.testng.reporters.VerboseReporter"/>
+                        <arg line="${testng.cmd.args}"/>
+                    </customizeDebuggee>
+                </j2seproject3:debug>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-testng-debug" if="${testng.available}" name="-init-macrodef-testng-debug-impl">
+        <macrodef name="testng-debug-impl" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${main.class}" name="testClass"/>
+            <attribute default="" name="testMethod"/>
+            <element implicit="true" name="customize2" optional="true"/>
+            <sequential>
+                <j2seproject3:testng-debug testClass="@{testClass}" testMethod="@{testMethod}">
+                    <customize2/>
+                </j2seproject3:testng-debug>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-junit-debug-impl" if="${junit.available}" name="-init-macrodef-test-debug-junit">
+        <macrodef name="test-debug" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <attribute default="${main.class}" name="testClass"/>
+            <attribute default="" name="testMethod"/>
+            <sequential>
+                <j2seproject3:test-debug-impl excludes="@{excludes}" includes="@{includes}" testincludes="@{testincludes}" testmethods="@{testmethods}">
+                    <customizeDebuggee>
+                        <jvmarg line="${run.jvmargs}"/>
+                        <jvmarg line="${run.jvmargs.ide}"/>
+                    </customizeDebuggee>
+                </j2seproject3:test-debug-impl>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-testng-debug-impl" if="${testng.available}" name="-init-macrodef-test-debug-testng">
+        <macrodef name="test-debug" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${includes}" name="includes"/>
+            <attribute default="${excludes}" name="excludes"/>
+            <attribute default="**" name="testincludes"/>
+            <attribute default="" name="testmethods"/>
+            <attribute default="${main.class}" name="testClass"/>
+            <attribute default="" name="testMethod"/>
+            <sequential>
+                <j2seproject3:testng-debug-impl testClass="@{testClass}" testMethod="@{testMethod}">
+                    <customize2>
+                        <syspropertyset>
+                            <propertyref prefix="test-sys-prop."/>
+                            <mapper from="test-sys-prop.*" to="*" type="glob"/>
+                        </syspropertyset>
+                    </customize2>
+                </j2seproject3:testng-debug-impl>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-test-debug-junit,-init-macrodef-test-debug-testng" name="-init-macrodef-test-debug"/>
+    <!--
+                pre NB7.2 profiling section; consider it deprecated
+            -->
+    <target depends="-profile-pre-init, init, -profile-post-init, -profile-init-macrodef-profile, -profile-init-check" if="profiler.info.jvmargs.agent" name="profile-init"/>
+    <target if="profiler.info.jvmargs.agent" name="-profile-pre-init">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target if="profiler.info.jvmargs.agent" name="-profile-post-init">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target if="profiler.info.jvmargs.agent" name="-profile-init-macrodef-profile">
+        <macrodef name="resolve">
+            <attribute name="name"/>
+            <attribute name="value"/>
+            <sequential>
+                <property name="@{name}" value="${env.@{value}}"/>
+            </sequential>
+        </macrodef>
+        <macrodef name="profile">
+            <attribute default="${main.class}" name="classname"/>
+            <element name="customize" optional="true"/>
+            <sequential>
+                <property environment="env"/>
+                <resolve name="profiler.current.path" value="${profiler.info.pathvar}"/>
+                <java classname="@{classname}" dir="${profiler.info.dir}" failonerror="${java.failonerror}" fork="true" jvm="${profiler.info.jvm}">
+                    <jvmarg line="${endorsed.classpath.cmd.line.arg}"/>
+                    <jvmarg value="${profiler.info.jvmargs.agent}"/>
+                    <jvmarg line="${profiler.info.jvmargs}"/>
+                    <env key="${profiler.info.pathvar}" path="${profiler.info.agentpath}:${profiler.current.path}"/>
+                    <arg line="${application.args}"/>
+                    <classpath>
+                        <path path="${run.classpath}"/>
+                    </classpath>
+                    <syspropertyset>
+                        <propertyref prefix="run-sys-prop."/>
+                        <mapper from="run-sys-prop.*" to="*" type="glob"/>
+                    </syspropertyset>
+                    <customize/>
+                </java>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-profile-pre-init, init, -profile-post-init, -profile-init-macrodef-profile" if="profiler.info.jvmargs.agent" name="-profile-init-check">
+        <fail unless="profiler.info.jvm">Must set JVM to use for profiling in profiler.info.jvm</fail>
+        <fail unless="profiler.info.jvmargs.agent">Must set profiler agent JVM arguments in profiler.info.jvmargs.agent</fail>
+    </target>
+    <!--
+                end of pre NB7.2 profiling section
+            -->
+    <target depends="-init-debug-args" name="-init-macrodef-nbjpda">
+        <macrodef name="nbjpdastart" uri="http://www.netbeans.org/ns/j2se-project/1">
+            <attribute default="${main.class}" name="name"/>
+            <attribute default="${debug.modulepath}" name="modulepath"/>
+            <attribute default="${debug.classpath}" name="classpath"/>
+            <attribute default="" name="stopclassname"/>
+            <sequential>
+                <nbjpdastart addressproperty="jpda.address" name="@{name}" stopclassname="@{stopclassname}" transport="${debug-transport}">
+                    <modulepath>
+                        <path path="@{modulepath}"/>
+                    </modulepath>
+                    <classpath>
+                        <path path="@{classpath}"/>
+                    </classpath>
+                </nbjpdastart>
+            </sequential>
+        </macrodef>
+        <macrodef name="nbjpdareload" uri="http://www.netbeans.org/ns/j2se-project/1">
+            <attribute default="${build.classes.dir}" name="dir"/>
+            <sequential>
+                <nbjpdareload>
+                    <fileset dir="@{dir}" includes="${fix.classes}">
+                        <include name="${fix.includes}*.class"/>
+                    </fileset>
+                </nbjpdareload>
+            </sequential>
+        </macrodef>
+    </target>
+    <target name="-init-debug-args">
+        <condition else="dt_socket" property="debug-transport-by-os" value="dt_shmem">
+            <os family="windows"/>
+        </condition>
+        <condition else="${debug-transport-by-os}" property="debug-transport" value="${debug.transport}">
+            <isset property="debug.transport"/>
+        </condition>
+    </target>
+    <target depends="-init-debug-args" name="-init-macrodef-debug">
+        <macrodef name="debug" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${module.name}" name="modulename"/>
+            <attribute default="${main.class}" name="classname"/>
+            <attribute default="${debug.modulepath}" name="modulepath"/>
+            <attribute default="${debug.classpath}" name="classpath"/>
+            <element name="customizeDebuggee" optional="true"/>
+            <sequential>
+                <j2seproject1:java classname="@{classname}" classpath="@{classpath}" modulename="@{modulename}" modulepath="@{modulepath}">
+                    <customize>
+                        <jvmarg value="-agentlib:jdwp=transport=${debug-transport},address=${jpda.address}"/>
+                        <customizeDebuggee/>
+                    </customize>
+                </j2seproject1:java>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-source-module-properties" if="named.module.internal" name="-init-macrodef-java-with-module">
+        <macrodef name="java" uri="http://www.netbeans.org/ns/j2se-project/1">
+            <attribute default="${module.name}" name="modulename"/>
+            <attribute default="${main.class}" name="classname"/>
+            <attribute default="${run.modulepath}" name="modulepath"/>
+            <attribute default="${run.upgrademodulepath}" name="upgrademodulepath"/>
+            <attribute default="${run.classpath}" name="classpath"/>
+            <attribute default="jvm" name="jvm"/>
+            <element name="customize" optional="true"/>
+            <sequential>
+                <java classname="@{classname}" dir="${work.dir}" failonerror="${java.failonerror}" fork="true" module="@{modulename}">
+                    <classpath>
+                        <path path="@{classpath}"/>
+                    </classpath>
+                    <modulepath>
+                        <pathelement path="@{modulepath}"/>
+                        <pathelement location="${module.build.classes.dir}"/>
+                    </modulepath>
+                    <upgrademodulepath>
+                        <path path="@{upgrademodulepath}"/>
+                    </upgrademodulepath>
+                    <jvmarg value="-Dfile.encoding=${runtime.encoding}"/>
+                    <redirector errorencoding="${runtime.encoding}" inputencoding="${runtime.encoding}" outputencoding="${runtime.encoding}"/>
+                    <jvmarg line="${run.jvmargs}"/>
+                    <jvmarg line="${run.jvmargs.ide}"/>
+                    <syspropertyset>
+                        <propertyref prefix="run-sys-prop."/>
+                        <mapper from="run-sys-prop.*" to="*" type="glob"/>
+                    </syspropertyset>
+                    <customize/>
+                </java>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-source-module-properties" if="unnamed.module.internal" name="-init-macrodef-java-with-unnamed-module">
+        <macrodef name="java" uri="http://www.netbeans.org/ns/j2se-project/1">
+            <attribute default="" name="modulename"/>
+            <attribute default="${main.class}" name="classname"/>
+            <attribute default="${run.modulepath}" name="modulepath"/>
+            <attribute default="${run.upgrademodulepath}" name="upgrademodulepath"/>
+            <attribute default="${run.classpath}" name="classpath"/>
+            <attribute default="jvm" name="jvm"/>
+            <element name="customize" optional="true"/>
+            <sequential>
+                <java classname="@{classname}" dir="${work.dir}" failonerror="${java.failonerror}" fork="true">
+                    <classpath>
+                        <path path="@{classpath}"/>
+                    </classpath>
+                    <modulepath>
+                        <path path="@{modulepath}"/>
+                    </modulepath>
+                    <upgrademodulepath>
+                        <path path="@{upgrademodulepath}"/>
+                    </upgrademodulepath>
+                    <jvmarg value="-Dfile.encoding=${runtime.encoding}"/>
+                    <redirector errorencoding="${runtime.encoding}" inputencoding="${runtime.encoding}" outputencoding="${runtime.encoding}"/>
+                    <jvmarg line="${run.jvmargs}"/>
+                    <jvmarg line="${run.jvmargs.ide}"/>
+                    <syspropertyset>
+                        <propertyref prefix="run-sys-prop."/>
+                        <mapper from="run-sys-prop.*" to="*" type="glob"/>
+                    </syspropertyset>
+                    <customize/>
+                </java>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-source-module-properties" name="-init-macrodef-java-without-module" unless="modules.supported.internal">
+        <macrodef name="java" uri="http://www.netbeans.org/ns/j2se-project/1">
+            <attribute default="" name="modulename"/>
+            <attribute default="${main.class}" name="classname"/>
+            <attribute default="" name="modulepath"/>
+            <attribute default="${run.classpath}" name="classpath"/>
+            <attribute default="jvm" name="jvm"/>
+            <element name="customize" optional="true"/>
+            <sequential>
+                <java classname="@{classname}" dir="${work.dir}" failonerror="${java.failonerror}" fork="true">
+                    <jvmarg line="${endorsed.classpath.cmd.line.arg}"/>
+                    <jvmarg value="-Dfile.encoding=${runtime.encoding}"/>
+                    <redirector errorencoding="${runtime.encoding}" inputencoding="${runtime.encoding}" outputencoding="${runtime.encoding}"/>
+                    <jvmarg line="${run.jvmargs}"/>
+                    <jvmarg line="${run.jvmargs.ide}"/>
+                    <classpath>
+                        <path path="@{classpath}"/>
+                    </classpath>
+                    <syspropertyset>
+                        <propertyref prefix="run-sys-prop."/>
+                        <mapper from="run-sys-prop.*" to="*" type="glob"/>
+                    </syspropertyset>
+                    <customize/>
+                </java>
+            </sequential>
+        </macrodef>
+    </target>
+    <target depends="-init-macrodef-java-with-module, -init-macrodef-java-with-unnamed-module, -init-macrodef-java-without-module" name="-init-macrodef-java"/>
+    <target name="-init-macrodef-copylibs">
+        <macrodef name="copylibs" uri="http://www.netbeans.org/ns/j2se-project/3">
+            <attribute default="${manifest.file}" name="manifest"/>
+            <element name="customize" optional="true"/>
+            <sequential>
+                <property location="${build.classes.dir}" name="build.classes.dir.resolved"/>
+                <pathconvert property="run.classpath.without.build.classes.dir">
+                    <path path="${run.classpath}"/>
+                    <map from="${build.classes.dir.resolved}" to=""/>
+                </pathconvert>
+                <pathconvert pathsep=" " property="jar.classpath">
+                    <path path="${run.classpath.without.build.classes.dir}"/>
+                    <chainedmapper>
+                        <flattenmapper/>
+                        <filtermapper>
+                            <replacestring from=" " to="%20"/>
+                        </filtermapper>
+                        <globmapper from="*" to="lib/*"/>
+                    </chainedmapper>
+                </pathconvert>
+                <taskdef classname="org.netbeans.modules.java.j2seproject.copylibstask.CopyLibs" classpath="${libs.CopyLibs.classpath}" name="copylibs"/>
+                <copylibs compress="${jar.compress}" excludeFromCopy="${copylibs.excludes}" index="${jar.index}" indexMetaInf="${jar.index.metainf}" jarfile="${dist.jar}" manifest="@{manifest}" manifestencoding="UTF-8" rebase="${copylibs.rebase}" runtimeclasspath="${run.classpath.without.build.classes.dir}">
+                    <fileset dir="${build.classes.dir}" excludes="${dist.archive.excludes}"/>
+                    <manifest>
+                        <attribute name="Class-Path" value="${jar.classpath}"/>
+                        <customize/>
+                    </manifest>
+                </copylibs>
+            </sequential>
+        </macrodef>
+    </target>
+    <target name="-init-presetdef-jar">
+        <presetdef name="jar" uri="http://www.netbeans.org/ns/j2se-project/1">
+            <jar compress="${jar.compress}" index="${jar.index}" jarfile="${dist.jar}" manifestencoding="UTF-8">
+                <j2seproject1:fileset dir="${build.classes.dir}" excludes="${dist.archive.excludes}"/>
+            </jar>
+        </presetdef>
+    </target>
+    <target name="-init-ap-cmdline-properties">
+        <property name="annotation.processing.enabled" value="true"/>
+        <property name="annotation.processing.processors.list" value=""/>
+        <property name="annotation.processing.processor.options" value=""/>
+        <property name="annotation.processing.run.all.processors" value="true"/>
+        <property name="javac.processorpath" value="${javac.classpath}"/>
+        <property name="javac.test.processorpath" value="${javac.test.classpath}"/>
+        <condition property="ap.supported.internal" value="true">
+            <not>
+                <matches pattern="1\.[0-5](\..*)?" string="${javac.source}"/>
+            </not>
+        </condition>
+    </target>
+    <target depends="-init-ap-cmdline-properties" if="ap.supported.internal" name="-init-ap-cmdline-supported">
+        <condition else="" property="ap.processors.internal" value="-processor ${annotation.processing.processors.list}">
+            <isfalse value="${annotation.processing.run.all.processors}"/>
+        </condition>
+        <condition else="" property="ap.proc.none.internal" value="-proc:none">
+            <isfalse value="${annotation.processing.enabled}"/>
+        </condition>
+    </target>
+    <target depends="-init-ap-cmdline-properties,-init-ap-cmdline-supported" name="-init-ap-cmdline">
+        <property name="ap.cmd.line.internal" value=""/>
+    </target>
+    <target depends="-pre-init,-init-private,-init-user,-init-project,-do-init,-post-init,-init-check,-init-macrodef-property,-init-macrodef-javac,-init-macrodef-test,-init-macrodef-test-debug,-init-macrodef-nbjpda,-init-macrodef-debug,-init-macrodef-java,-init-presetdef-jar,-init-ap-cmdline" name="init"/>
+    <!--
+                ===================
+                COMPILATION SECTION
+                ===================
+            -->
+    <target name="-deps-jar-init" unless="built-jar.properties">
+        <property location="${build.dir}/built-jar.properties" name="built-jar.properties"/>
+        <delete file="${built-jar.properties}" quiet="true"/>
+    </target>
+    <target if="already.built.jar.${basedir}" name="-warn-already-built-jar">
+        <echo level="warn" message="Cycle detected: Lab2 was already built"/>
+    </target>
+    <target depends="init,-deps-jar-init" name="deps-jar" unless="no.deps">
+        <mkdir dir="${build.dir}"/>
+        <touch file="${built-jar.properties}" verbose="false"/>
+        <property file="${built-jar.properties}" prefix="already.built.jar."/>
+        <antcall target="-warn-already-built-jar"/>
+        <propertyfile file="${built-jar.properties}">
+            <entry key="${basedir}" value=""/>
+        </propertyfile>
+    </target>
+    <target depends="init,-check-automatic-build,-clean-after-automatic-build" name="-verify-automatic-build"/>
+    <target depends="init" name="-check-automatic-build">
+        <available file="${build.classes.dir}/.netbeans_automatic_build" property="netbeans.automatic.build"/>
+    </target>
+    <target depends="init" if="netbeans.automatic.build" name="-clean-after-automatic-build">
+        <antcall target="clean">
+            <param name="no.dependencies" value="true"/>
+        </antcall>
+    </target>
+    <target depends="init,deps-jar" name="-pre-pre-compile">
+        <mkdir dir="${build.classes.dir}"/>
+    </target>
+    <target name="-pre-compile">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target if="do.depend.true" name="-compile-depend">
+        <pathconvert property="build.generated.subdirs">
+            <dirset dir="${build.generated.sources.dir}" erroronmissingdir="false">
+                <include name="*"/>
+            </dirset>
+        </pathconvert>
+        <j2seproject3:depend srcdir="${src.dir}:${build.generated.subdirs}"/>
+    </target>
+    <target depends="init,deps-jar,-pre-pre-compile,-pre-compile, -copy-persistence-xml,-compile-depend" if="have.sources" name="-do-compile">
+        <j2seproject3:javac gensrcdir="${build.generated.sources.dir}"/>
+        <copy todir="${build.classes.dir}">
+            <fileset dir="${src.dir}" excludes="${build.classes.excludes},${excludes}" includes="${includes}"/>
+        </copy>
+    </target>
+    <target if="has.persistence.xml" name="-copy-persistence-xml">
+        <mkdir dir="${build.classes.dir}/META-INF"/>
+        <copy todir="${build.classes.dir}/META-INF">
+            <fileset dir="${meta.inf.dir}" includes="persistence.xml orm.xml"/>
+        </copy>
+    </target>
+    <target name="-post-compile">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,deps-jar,-verify-automatic-build,-pre-pre-compile,-pre-compile,-do-compile,-post-compile" description="Compile project." name="compile"/>
+    <target name="-pre-compile-single">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,deps-jar,-pre-pre-compile" name="-do-compile-single">
+        <fail unless="javac.includes">Must select some files in the IDE or set javac.includes</fail>
+        <j2seproject3:force-recompile/>
+        <j2seproject3:javac excludes="" gensrcdir="${build.generated.sources.dir}" includes="${javac.includes}, module-info.java" sourcepath="${src.dir}"/>
+    </target>
+    <target name="-post-compile-single">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,deps-jar,-verify-automatic-build,-pre-pre-compile,-pre-compile-single,-do-compile-single,-post-compile-single" name="compile-single"/>
+    <!--
+                ====================
+                JAR BUILDING SECTION
+                ====================
+            -->
+    <target depends="init" name="-pre-pre-jar">
+        <dirname file="${dist.jar}" property="dist.jar.dir"/>
+        <mkdir dir="${dist.jar.dir}"/>
+    </target>
+    <target name="-pre-jar">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,compile" name="-check-module-main-class">
+        <pathconvert property="main.class.file">
+            <string value="${main.class}"/>
+            <unpackagemapper from="*" to="*.class"/>
+        </pathconvert>
+        <condition property="do.module.main.class">
+            <and>
+                <isset property="main.class.available"/>
+                <available file="${build.classes.dir}/module-info.class"/>
+                <available file="${build.classes.dir}/${main.class.file}"/>
+                <isset property="libs.CopyLibs.classpath"/>
+                <available classname="org.netbeans.modules.java.j2seproject.moduletask.ModuleMainClass" classpath="${libs.CopyLibs.classpath}"/>
+            </and>
+        </condition>
+    </target>
+    <target depends="-check-module-main-class" if="do.module.main.class" name="-set-module-main-class">
+        <taskdef classname="org.netbeans.modules.java.j2seproject.moduletask.ModuleMainClass" classpath="${libs.CopyLibs.classpath}" name="modulemainclass"/>
+        <modulemainclass failonerror="false" mainclass="${main.class}" moduleinfo="${build.classes.dir}/module-info.class"/>
+    </target>
+    <target depends="init" if="do.archive" name="-do-jar-create-manifest" unless="manifest.available">
+        <tempfile deleteonexit="true" destdir="${build.dir}" property="tmp.manifest.file"/>
+        <touch file="${tmp.manifest.file}" verbose="false"/>
+    </target>
+    <target depends="init" if="do.archive+manifest.available" name="-do-jar-copy-manifest">
+        <tempfile deleteonexit="true" destdir="${build.dir}" property="tmp.manifest.file"/>
+        <copy encoding="${manifest.encoding}" file="${manifest.file}" outputencoding="UTF-8" tofile="${tmp.manifest.file}"/>
+    </target>
+    <target depends="init,-do-jar-create-manifest,-do-jar-copy-manifest" if="do.archive+main.class.available" name="-do-jar-set-mainclass">
+        <manifest encoding="UTF-8" file="${tmp.manifest.file}" mode="update">
+            <attribute name="Main-Class" value="${main.class}"/>
+        </manifest>
+    </target>
+    <target depends="init,-do-jar-create-manifest,-do-jar-copy-manifest" if="do.archive+profile.available" name="-do-jar-set-profile">
+        <manifest encoding="UTF-8" file="${tmp.manifest.file}" mode="update">
+            <attribute name="Profile" value="${javac.profile}"/>
+        </manifest>
+    </target>
+    <target depends="mnit,do-jar-cre·td--anifest,-do-jar-copy-maniVdsÙ" i"="do.arch)ve+sqÏashscreen.ava)lable" name<#-do-jar-setsplashscrgen">
+        <basename<file="${applacatmon.sxlash}" property?¢sp,ashscruen.faSename"?>
+   †) † <mkdir!dir="${build.classes.`ir}/META-ALF"->
+        <kmpy gailoNerror=#false" filÂ="${application.splash=" todir="${build,classes.dir}/]ETA-INF"/>
+        <manifdst encoding="UTF-(" fiÃe="&{tmp.manifeSt.fila}" mde="update"6
+            <avtrkbute name="Splas`S#zemn-Image" value="META-YOF/${splashskrgen.baseneme}"/>
+  †4    </manif%w|∂
+@(  </target>     <target &grend3="init,-init-macrodef-copylibs,compile,-pre-xrm-jar,%P2e-ja2,/dˇ-jar-cre!te≠manifest,-do-jar-cop{-mqÓkfest,-do-har-set-mainglAss,-do-jarsetΩpbofile,-do-jar-se|-splashscreen# af="do.mkdist" name="-do-jar-co3plifs">        <j:seprohact3:cOpyli`s manhfest="${tmp.ma.ife3t>file}"->
+  !  $  <echo nOven="info">To run }his appl)catioj from(the commend line without Anp, try;</eilm>
+      " <psope2|y nocction9"$sdi1t.j!r}*(jeÌm="dist.jar.zecolV%d"+>
+ † "(  0<gah),evel}"Yn&">kafa -hab&"ddis|:hap,ReSolV%T}"</ecxˇ>   "|Øtapcet>   "<taÚgmt(leruÏd1"iniu|comile.mprE-prE-ni≤,-pre-jav,-to'j`z-bveate-minkfe{p|-lo-jas-kgÒ]=malibeÛt,-do-hqr'sft-mckÓclmr{,≠do/jAÚ?se4,pr/dhmwå-`-*ar-sAt-s`lasxwsrden" Èf="do.irchi6g" n!me}*-dg-jar-h·p" ınl%yÛ-"`o.Mk‡yst2>
+ †  ` 4j63eproject1:nip mcnib%sı="${tmr.manyddqxéf)me|/>(*  ‡$  =pÚozErtq!T~cad-mn="${buiL`>ceasses.diz}" ncme=#zuind.clasrMs.dmr.rdsolvedb/>
+§"      <¯ro1er$y Losgtymo%$zthpt.jar}‡ .amg}"dÈst.jar.Surohˆ%‰"/>
+$$!8    |kmndkt)on e|uÂ="${%ist.Jar>resÔlved}"!PrOpÂrty) j·v.usag!.mes7age.clcss.pa4(.sap,acDment#)ˆal1g=":>/
+    $  "   <Issut Ò2nqeRvy"namEdnmoDumeÆi.d≈wnal"/<  ($    </gjn‰itaon>
+      * <`aticmnvert1sOpErpy=*Úun>„,!”sx·tI.wivh.disı~j¡r">
+     `   !!0<pctl0patÈΩ"%{rwd*Cl`WÛp`th}"/;§   "° $ D(*<lC`from= ,{build,classes.fi2.rÁ3olvae}" tÌ=b$;jar,osafe>lmwsawg.blass>pathnrerl·cmmant}".>
+ 0    •!º/x·txcKÓ˙erm>	   0""`"=pa6jcmnvert p≤oxeZvy#r5n,-odulepath.with.dist.jar">     `      <patl location="${dist.jaz.resolved}"/>
+2  0        >padh path="${ruf,modulepath}"m>
+       (    <mar from="${buy|d.slasses.dir.pesolfed}" to="$zdyS4.jbz.resolvgd}"/>
+  "     4/pethcÔnvert>
+0       <cknditiok else<"${run.mkd5lwpath}" propesty="nar.usage.mussqge&run.modulepaph.with.distjar" velue="${run.modulepath.with.dist*jar}">)           <isset property="~aÌe`.module.internal"/:-
+        </cootition>
+        <conditioo elst="" ppopgrty="jaR/uwqge.mersag!.module.pathb`value=" ≠p  {jar.usaoe.me{sa'e.run.mo‰ulepath.wmth.fyst&jar}">
+            <aod>
+  $`            <isset proxerty="modules.sqpqorted.internal"/>
+              § <length ,engtj="0¢ stbing-",{jarusage.mess`gÂ.run.Ìodulepath.with.dist.ha2}" when="greater"/>
+ !!         <Øand>
+        <Øgondition>
+        <conditign"lse="& property-"bar.usage.iessage.class.path# 6anue=" -cp {zuf.c|asspath.wÈth.dist.jar}">
+    "       <ldngth l%ngth="0" string="${run.cdasspcth.w)th.d)st.kary" when=*greater"/>
+        <?condition>   "    <condition mlse="/§{mcin.c}ass}" propgpty="jar.uscge.message.}ain.bnass.cl!q{.selecÙop"0value="">
+†  "        <isseÙ ro0erty="do.mÔduleÆmain.clasÛ"?>
+ "    †0<+bgndytion>
+        <condition else?" ${main.claqs}¢"property="jar.uScge.messige.mcin.class" valuı=" /l ${Ìodule.neme}${jar.usage.message.makl.slass/class.select/r}">
+        °  <hsset prkperty="named.modul%*internal"/>
+      † >/condÎtion*â
+ "      <boÓdition e,se=""†propÂrvy="jar.esage.messawe" ˆclue=¢\o run dhis application from the1sommand ling without Ant tr˘z${linÂ.sep·rator}({platfoÚmnjaga}d{jar.usage.mmssege.module.path}${jar.usage.mess`ge*class.tath}`{jar.usagÂ.message>main.c|!ss}"*
+       "    8isset prgpeÚt˘="}ain/classnavakla¬le"/>
+    `   º/condition>
+  0     <confitÈÔn†else="debug" pÚmxerty="j!r.uÛage.level" velue="info".
+     0      <issut ppoperty="main.cl`swØawcilabl%";>
+        </condition>
+   †    <echo level5"%{jar.}sage.level}""mewsage="${jar.usage.message}"->  ¢ </tavfmt>
+   <target0depends="-do-jAr-copylibs" )fm"Do,arciivo" n·me="meo)jar-deletm)i!niˆest">J! hl 0 (<demete>0 (    $ $  <fmleseu filf="f{t-x.man)ÊuwT.&qle]b/>J        </$eLete>
+   0</Ùarget
+0   <taz/dt depend3="init,c/mpile,-pre-pra-nar/%pre-j´r,≠do-jar-create)mANÈNe{t,-`o≠ËÈr-cpy%Ìanif%wt,-‰Ô-*ar-ke<-Ìaincoass¨-to-Í r,seu-profËme,-do-kqr-set-rqÏaÛhwkree¸,-‰ojer<jAr,-dO-jqr-delete-manyÊ%st"†oam%="≠do-har-itxout-lÈbrqrigÛ&/
+  ` <taRgep depends=*init,co}pilu,-`b%-tre-kar,-tru-jar,-‰'≠zqr-crgaÙe-man[ve{ı,-fo-jav-bÓ˘x-manifest,,do-jas-smv-mai/claww -do-nar-se|profile,-do-jarset-splcshs„reen,-do=jis-cnpylmfs,-d-jar-deleteØmanyfesT" ~aMo="-dk-jQr/witj-li‚rqries/<
+    tar'et naee5b-post-jkr">E
+  `)`  $.!,- Mmq4y plqceËolder$for easier cusdomiation."-->J(  †   `<°-- Yo˝ can nverzidd this$tazgut in the ./buiLd>xml!file m->â
+!(†$</target>	` ( <target!dePejds="in)t,„ompilel-`r%-j·z,-sEt-%odulu=m+hn-clasS(-do-jap,wiıpnu$-lIbravmesl-eo-jar-with-libr·ries--poÛt-j!r* name=*-do-jav">*    >target`$'pgnds="Init,agmpile4-pre-ja{,-do-jar,-post-jar,deploy" descrmrtao~="Build$J≈R.g la-e="jar2?>
+ 2! <!=-
+  8      "   `  =Ω=5======9======ä ("      " (®)! DEPNOY SECTION	* ! †      †" ¢""====-=====-====
+    !   $   --<
+    <target®lame=2-`remdeply¢>
+     0  =%- Empty `laceholder for easiez0curto}izatio~. --6
+   $   (<°-- You can"ÔveÚrhde tËis8targeÙ in the .+bu)nd.xmm fÈmeØ-->ç
+    </target?M
+"( `<|apget†lepeÍd3="init" ~aÌe="-sheck≠jl)nk">ä   0    <confition propErdYΩ"dÔjlilk.internal">
+          d ≠and>
+   h !   $"     <ictruÂ val}e="${do.hn·nk˝"+>
+      $  (  !   <isseÙ"prop%rty?"do.afgËive"/>M
+†    †"  (  0   <is≥et(pvop-zty="nemed.module.ioternal"'> †        ` </and~
+     (  </co~dition>
+ 3  <otarÁet>
+ *†<target†depm~dÛ="init,-do≠jar,-pÔ3t≠jar,-pze-ddpLoy,-check-jlink* ifΩ"do.jlink.iÓternal"(namd="-do≠depnoy">
+    `   <delete dir="&{dist.jlylc.div}" failone2zmr-#false" qı`et="true&/> 0 (  ! <ppoper|y$ncmq="jlink.lcqncher.name"†valqe"${p0tmi„atiÔN.tatme¸"/>
+     (  <condition$elwe="&{mofule.n`mg¸" propert{}"jlank.add.mohulew& valwe="${Ì/dtle.name},${jlinK,additionalmod5hes">
+(   † `∞    <end>
+      †`0       <isset roperTy="hlinc.q‰ditioÓalmkdu.es"/>      !        $<length leogthΩ"0# str)ne="${jlink.apditionalmoduLec}b"shÂn="grea4e2"-> (         "<?ane>J   "    ,/gÔndiÙion>
+  !    0<conditiOÓ qrOperty=*jlinkdo.strap.intEr.aÏ">
+        0†  <and>
+ (    "  †      <isseT pzopertyΩ"jlink.stbip"/>
+   †            <ystsue v`lue=¢${jHiNk.3TRip}Ø>
+! !!0 0  "  <Øan‰>
+     "  >/conditkon>ç  `  0† <collition†prgperty9"jlink.do.additifoalparAm?intesnal">
+  0 †  4   <and>
+   0          $ <isseu prope˙ty=*jlini.additionil`apamb/>
+   " 0 8  &     <ÏeÆgth leggth="0" ctÚin'≠ ${jlink.additÈnaLpav·m}b(wxen="greatev"/>
+ 4          </afd>  ! $   ∏/cÔnlition>
+    ¢   <koÓditiml(proterty=&jlkÏk.do.launkier.internal">
+      ∞     <and>
+  (   2   0 0&  ,hstSue taluÂ="${JÏ)nk.lau.cher}&/Ä    0      0    <ks3et property9∫oain&class.araklable"/>
+ 0    †∞    </qndv!`      </cof‰mtioN.
+      $0<x‚operty n·me=&platform.jlink2 valee="${jdk.lome}/bin/jlivk6/:
+      $ <pˆorurty name}"jnyno.systemmn‰ules.internam $Valwe9"${jdk2hÔme}/Jlods"/.
+ $  †   ºexec uxEautable="${platdorm.j|inky">
+      1"(0  >arg v„lte=¢--modune-patÍ"o<
+¢     4    '|erg path="${jlink*ÛyspmÌm/du,es,internal}:${rwn>modulepath}∫5˜fist.jar}"/<ç
+ "#  (`     <arg velıg=&--add-modulus"/>
+!0   $(    <arg valueΩ"${zlink*aDd.modules}"/?
+   ! (0     <arg if:set5"jhink.do.strip.internal tclue?b--st2ip-tebug"o>
+     $   @" <arg kF:sut}"jlInk.do*latnb(Âr.iÓtgrn·l" Êalue="-=launchÂr"/>
+       `  †04arw¢if:Ûet="k|iNk.do.la5ncher.internal" viluÂ=",{jlink.launche2.name}=${modıde.nqie}/${mai~.#lasc}2/>
+0    ∞ ® $ <arw Èf>sep="jlink.do.a`diviLalparam.intErnadb!line="${jlinÎ>`dditiooclar!m}¢/æ
+ 8        ` <arg valum-"-=output">™ 0$`       <arg(value-"${dist.jlink/utput}"/>
+$0 ‡  † ,/exea?
+ !! </taÛoet>
+`)  <targdt Óimm="-post-daplky">]
+        !-, Empty placehoÏfer gor†easier"cukvgmiz„tyon. -->J†    !" <!-/`You can$overridÂ`t(-s targÂt h. the Æ.,bqa|d.xml fileÆ§=m>-ä(   'targed>
+`   <targe|$fepends="-domncr,opoÀv-Íar,-pre/derly,-do-teplo{.-osT-deploy" fame="d%ploy+/.
+ ! †<!---
+    ·p`0 `†  `  9<=ΩΩΩ===Ω9=-====
+("   "(¢†       EE’TON SECTIO¬
+  † "  $  † $  #==%=============}ä! †    `0(  %-.    <|qrÁÂÙ$$epgnds=¢knitcom0yle" descrituyon="Ru."q maio al·{{." namd}"ruÓ">
+ `     †∏Í2sepfoject1:jaTa>ù
+ ∞   `   `  <cusvOmÈ~m~-
+  00 $ †$  † $ <qzd $ane="${appliC`tioj.arg}*/>	
+!h"  †† "  "<-customm˙e?
+" "$(* "+j2seprojectu:jeti>  $0,/va~eed>Ö
+†  `º4epget Óale-¢%Do-Fot-becoi`ile">M
+ x  $   <propeb|y¢namÌ="Íavac.Ènclud%s.binary" vAlum<""->
+   !</Ùarget>
+°   <TazGÂt depends="init,compije-singl|" nqge="rın/ingne >ç
+($ †  ! <Êaal un|eSs=bsun.rmass">Mtst se,ekt one0filÂ")n$|hm IDE0or set rYo.claÛs</d)imæ
+     (  <™2seqboZu#t1:jave$classname="${rul.#Ïissy"'>
+    </tawgÙ>
+    =t`rgeu!depeÓds"ynot:compi|e(tgst-≥ingle" namdu"r}n-es|-wmth)main#>
+    8 $ <d·il&ufless="runÆ„|·sÛ".Must s%|ect OnÂ file in†Ùhe IDE or†set rın&classº/f·iÏ.
+2&    2$|*2rgÓo+Âst9:jqDa¿#m„su~audΩf$˙zuÓ.bnA≥Ûm(!Il!qsÚith="irunnt·su<clecs`atj}"/æ
+@% "8Øtrrgat>	   08Ô-
+   ( †! "(!(0`  )=?==Ω<=Ωmy==ù5<=
+"     ""  "   † ƒEBQWIﬁ&0SECTI„N
+(  h*‡ &(` † †0===-=--Ω?;====9==
+†"  $  † ( -=zä  0 <uareÂt $mdflzbinmt" mf=&oetfÂ©n3.ho}e&†na-u>"ed%bug-sˆa"|-lebÙGÁÌr(:
+°     † <‚2seyrojgÒ118objrl`staP| ncme=¢${deÍqg.Kl!s·}"Øæ
+ ( 0<?d@rgmt>M
+  `ºti2ggt@deÚeod{="i˛i4" if="nuÙbeaNqªhoie¢‡nemg<™-d‡‚ıg=s|`rT-ddruggermamÓ¨tmst"6*`‡ †$ Ä<`2we‡ronect:ndjxdistart wÏ·srpa|b}b$ynE¬ug.to~x.cl!wqqedh}b famÂ<"§{dab›g¨codQq|b/æ
+" 0`=+u†rge‰.M
+" !@º|abEit ‰exendxΩ2)n	thco}rilu#`f`me=3dmbuc≠rtprt•lujugcmg"Æä  ,  0"‡0B2smp"jÂkd≥dl‚ug=
+†  0  < "   <„uwtÔeiZÂUebu%cµe>	†  4 !     Ä *† <azG!lanm="${#pxlibapÈan.argsW"/Ø+‡ p 0  ( ∞  5+gusukmÌjdubucggeÀ)†Ä0!¨† º/n3{ÌXrØjegt3[`uµg~    =£e·vgut>
+$p  4TczÌet"qeqgjds)"inyt<ckmpÈnE-,tebıgmst`rt%debugcez,tdbug&quAvttebugode* eÌscb)ppÎon?"Decq' 4rÔj$#t in IƒE.# If="nÂÙbecnsho)e"¢nÒma"%ı`uG"ß<NF"®(#ºtarua4@‰°peÓds}"hnit" i6="netbeans.ËomÂ¢ naÌe="-debug-s|art-debugger-Ûterinto"æ
+ (   0  <j2seproject1:nbjpdastart stopclassname="§{ÌaÈn.class}"/>
+ "( |/target?
+ † !<targut ‰epen‰s="knit,compile,-debug-start=decugger-steinto,-debug-staÚt-eebm'wee" ig5"nÂtbeans.home" nameΩ"debıg-stepinto"/>
+  0 <uarÁet ‰etends="init-co}pilE≠single" if=2netbeans.hooe" name="-debug-start-dejuggee-sÈngle">
+      †0<fail unless=¢‰ebug.ctass">Must sE|ecT one fiÏe(kÓ dËe IDE or sev†debug.class<ØfaÈl>
+        <j2seproÍect3:debug classname=#§˚de‚to.class}"/>-
+    </tabget>
+ "  <target de`gnds=¢init<compile)Ûingle,-dgbug-stcrt-debugggr,-debwg=start=debugweg-Ûingle" if="netbeans.home"$name?"debug-sÈngle"/>
+    <varget0‰Âpends="inht,com0ile-tgst-siÓgle" if="netbeans.home" name="-debug-start-deru/uae-main=test"6
+        <fail u~leÛs="debug.class">Must sele„d one vile in the†IDE†or set debug.class</fail>
+        <j2se0rojecÙ3:debug classnaÌe="${debug.cl·ss}" classpath="${dabug.test.slqsspath}"/>
+    </targmt>
+†   <target depends="Ènit,com`ile/pesT-sÈngle,≠lm‚ug%start-debugoÂs¨mii~-te{t,-‰wbtg)start¨debuggee-main-tewt" if="netbdans.hÔme" ncm˝="lebug-test-wkth-main"/>
+   +<target0depenls="init" ni-e=-pze-debug-Êix">
+        <fa-l$ınlqss="fixÆIncludes">Must Ûet fIx.kncluddw<-fail>        <prmterty(name="javac.ifcmudÂs" value="d{fix.in„ludes}.javab/>
+   (</target>-
+ `(0<tcrget depents="ilct¨-pre-de wG-fix$compile-single" if="netbeans.(ome"†name<*=do-deRug-fiX">çä   (   $<j2se`rohect1znbjpdazel+aÂ/:
+    </tar'et>
+    <target depends="init,-pre¨debug-fyx¨-do%debug-fix( if=¢met‚eans.h/me" naee="debug-Êix"/>ä    <!--
+                ==-==============
+"$      0      !PROFILING SECTION
+(       0   †(  ======9=====-====
+     †      -->
+    <!--
+    `0         †pre NB7.6 prmfiÏÂr integration
+ $          -->  ! <tarfet0depends="profKlg-initlcompile" deÛcription=6Pro&ilm a project in |he$IDE." if="rmfiler.info.jvmargs.agent" nqme<"≠profile-qre52j>        <fail unless="ngtbeans.home">This target ÔNly works when run rrnm"y~side the NeÙBeans IDE&}/vaiL>é   ( $ "8lbprofiledirect<ä   0        <klasspatË>
+                ºpatJ(0·th="${ruo&classpath}"/>*  !(        </clcsspata?        /nbprofiledÈzect>,     (  <profiLe/>
+ `( >-targdv>ç
+  † <derget depeNds="profilm-inkt,c'mile-SiNGLe" descviptioÓ="Profile i suleCted clqÛs kn the!IDE." aÊ="pÚofilerÆinfoÆjviapgs.agent" nime="-profite-single-pre72*>
+, `     <dail unÏess="profile.cl#ss2>Must select onu fÈle in the IE≈ ob set0profmle.class/fAil>*     †  <fai, tnle{s="netbeans.homm""This targeT Ônly wovis whe. pun fre!iÓÛide#Ùhe NetBeans!IDE.</fail>
+"    † †<nBprofilefi2ekt<
+  $         <cÏasspath
+             ` `<path pati<"&run.„La{spatH}"/>
+0           |/classpet(>
+"  ∞    </nbprgfiledirect>
+     `  8pRobile!#l·sSname="§ztr/file%klass}*/:
+ `  </targ%t>
+ 0  >ta{gd|†deqgnds=¢profile-i~it,compiLe-single" if="profilar.mnfo.jvmargsnaeent" ~a-e="-rrofIle-applmt-PCe∑2">
+      0 <&ail unlez{="jetBea~s.home">Tiys Ùarget only ˜orks when ruo dr/l inside thehNetBeans IDU.</nAiÏ>*"       :nbprofilÂdirest>"     ` †   4c‰assp!vh>ä$0 *ê†! (( !    <pAtx 0ath="${run.classpaph}"/
+ °†† #      </clgsspQth>( "     <Ønbprofileeirmat>
+† $$ #  ¸p2ofIÏe!cl·ssÓaie>"sun.Applet,¿pÏmdVieueR">-
+`   2  0   <customizÂ>
+         ` 0    >aÚg valegΩ"$zapplet.urÏ}"/>
+    "† ("†8 ,/„ustoÌyze>ä$  $ 0  </profÈle>
+  " <.target>
+`!  tarÁet de`ends="-¡nit-oiczœdef-junyt,pRobale-an)t¨coexilemtest-siogle !kf<¢pRofilEr.)Nfo.jvmargs.agene£ n·me="proÊmÏa-Test-single-pce72">
+    0   =fai| unluss?bndtreens.home2>phiw"target onli0uoris!when0rıÓ grom!ijside the OetBe˘os IDE.</fpi|>
+    0   >nbqrfinedÈrect>
+`    ∞   !  <classpa|Ë>
+      b $`$`$  <pqth xath7"$;run.tesu.cÌass`ath}#/>
+   $°       ,/class0adh>
+   †   †</nbprofiladkrec|>	
+!(  !0  új≤s%`oject3:juÓiÙ†excludÁs="${e¯kludes}" includes=2${inbluees=" tesTincludew=" ˚ROfile.class}# tes%ethods}"".J       (    <cqStolize>
+  ` (2"`0       <jvÌqÚ« ˆqluu="-agentlib:jepΩ%raost/rp=${decuG-ÙÚAls“ort},adDr%ss={kpda.addr%ss}"?æ
+           ` 0 )<env kEy?",{p‚obilev.info.pathrar}" tadi="${profiler>in"o>ioentpath}:$kprofklep.currÂnt.path}"/>
+! †    ††     $ <jˆmavg value="4{`pogihgr.info.jv}arÁs.`gÁn|m"/>-"` †`       ¶   4nvmarg lhne=¢&}¯sofi~er.infÔÆjv}args}"?>
+ !0   †        †<classp`th6
+  `   0(`          (<avh path=¢${zıÓ.tEÛt.blasspAth} />
+     "$     †   ºclas˚path>-
+  (   ¢   ( </customize>     †  º/j2sepr/ject3:junit
+    9/tirget>
+   0<!--
+   ( (         !end of pre!∆B?2 profÈhing section
+   ° 0 † !  ,-=
+   "-targev if˝"netceans.aome"†nqie="-proFile-·heck">
+ †8 ($  <conÙytinn†propÂrty*qrofYler.cÔnfiGurem">-ä          † ær>
+        " (   ` ºcontaiÆs „qsesensitiv%Ω"tRıe" string="$yrqn.jvmargs.iley* cubstrÈnÁ=b-aeentt·th:*/
+    (         †<cknt·ins casesensm4ive="true&!wtriÓg<"$run.kvmargs.idem$ substryng="-javaagÂnt:"/>
+    $° 0$   <oor>
+     † !º/cÔnuitiknæ
+ †  </tarGet>
+    <target de05nd{="-proÊÈ,e-CËgck,-profyle-pre73" desczypt`onΩ"pbofile a pbojec`0in the IDEn" if=2proGiler.condigurgd" name="profile* 5nless?"profiler.info&jviargs.av‰nt">ä   0  (<st·rtprofiler+>       (<·nv„ahÏ tbvgev="ru~"/>    >/darg%t>
+   0<arget de`e~dq=-pzofile-checkh-pR?file-sinÁle-rre7¢" descrptmon5Pr_fklÂ ·#selected clasÛ kn t`e IDE.b†af="profiler.ggnfigwred" naÌ%9"provÒle=single""unle[s=&rliler.info?nvmargs.qgent">J $  ($  <fail unlecr9 rµnÆclass"<M5st suÏucÙ†one filu`in |hl IVA†or®set rUn.„lqss/faÈh> Ä    $">star4prnfileÚ/<-
+"† † ‡  <antc!ll tarwet="run-singlÂ"/>
+    <-pcrwet>
+ †  Ωtasoet`dÂpends="mPbodmle≠test-sÈngnq-pZe72" de3c3ipuion="PrÔfidÂ È seneCted test†i.0ulu IFE.* naÌa9"profile-~tsd-si~gle2/>a(@0<target `oT·
+eS}"-ÚÚ.zi|e=chekk"†desczÈption="Pro&hÏe a(sele„tad test(in thÂ I∆E." iv="profilÂr.convigured" name="profiÏe-test& 4nlm{s="profile2&{nÊonjvmargs">
+ 0  !  ™<faÈl woÏQss="tust.ing|ufes">Muqt select sÔme filEs iÓ thu IDE nr sethtest.inclu&es8nail>
+  ® *  <staruprogiLer/>
+    " 0 ºaftcahl vargep="Test-Ûin'leb/>
+! ( </tCrgeT6  " <Ùarget†depunds?"-profilU•checi" deÛcriptik~9"Prmfile a sele{te‰ clÒws in†the IDE."†if="Pˆofiler.configured" name="profile-test-with-main">
+        <fail unless="run.class">Must select one file in the IDE or set run.class</fail>
+        <startprofiler/>
+        <antcall target="run-test-with-main"/>
+    </target>
+    <target depends="-profile-check,-profile-applet-pre72" if="profiler.configured" name="profile-applet" unless="profiler.info.jvmargs.agent">
+        <fail unless="applet.url">Must select one file in the IDE or set applet.url</fail>
+        <startprofiler/>
+        <antcall target="run-applet"/>
+    </target>
+    <!--
+                ===============
+                JAVADOC SECTION
+                ===============
+            -->
+    <target depends="init" if="have.sources" name="-javadoc-build">
+        <mkdir dir="${dist.javadoc.dir}"/>
+        <condition else="" property="javadoc.endorsed.classpath.cmd.line.arg" value="-J${endorsed.classpath.cmd.line.arg}">
+            <and>
+                <isset property="endorsed.classpath.cmd.line.arg"/>
+                <not>
+                    <equals arg1="${endorsed.classpath.cmd.line.arg}" arg2=""/>
+                </not>
+            </and>
+        </condition>
+        <condition else="" property="bug5101868workaround" value="*.java">
+            <matches pattern="1\.[56](\..*)?" string="${java.version}"/>
+        </condition>
+        <condition else="" property="javadoc.html5.cmd.line.arg" value="-html5">
+            <and>
+                <isset property="javadoc.html5"/>
+                <available file="${jdk.home}${file.separator}lib${file.separator}jrt-fs.jar"/>
+            </and>
+        </condition>
+        <javadoc additionalparam="-J-Dfile.encoding=${file.encoding} ${javadoc.additionalparam}" author="${javadoc.author}" charset="UTF-8" destdir="${dist.javadoc.dir}" docencoding="UTF-8" encoding="${javadoc.encoding.used}" failonerror="true" noindex="${javadoc.noindex}" nonavbar="${javadoc.nonavbar}" notree="${javadoc.notree}" private="${javadoc.private}" source="${javac.source}" splitindex="${javadoc.splitindex}" use="${javadoc.use}" useexternalfile="true" version="${javadoc.version}" windowtitle="${javadoc.windowtitle}">
+            <classpath>
+                <path path="${javac.classpath}"/>
+            </classpath>
+            <fileset dir="${src.dir}" excludes="${bug5101868workaround},${excludes}" includes="${includes}">
+                <filename name="**/*.java"/>
+            </fileset>
+            <fileset dir="${build.generated.sources.dir}" erroronmissingdir="false">
+                <include name="**/*.java"/>
+                <exclude name="*.java"/>
+            </fileset>
+            <arg line="${javadoc.endorsed.classpath.cmd.line.arg}"/>
+            <arg line="${javadoc.html5.cmd.line.arg}"/>
+        </javadoc>
+        <copy todir="${dist.javadoc.dir}">
+            <fileset dir="${src.dir}" excludes="${excludes}" includes="${includes}">
+                <filename name="**/doc-files/**"/>
+            </fileset>
+            <fileset dir="${build.generated.sources.dir}" erroronmissingdir="false">
+                <include name="**/doc-files/**"/>
+            </fileset>
+        </copy>
+    </target>
+    <target depends="init,-javadoc-build" if="netbeans.home" name="-javadoc-browse" unless="no.javadoc.preview">
+        <nbbrowse file="${dist.javadoc.dir}/index.html"/>
+    </target>
+    <target depends="init,-javadoc-build,-javadoc-browse" description="Build Javadoc." name="javadoc"/>
+    <!--
+                =========================
+                TEST COMPILATION SECTION
+                =========================
+            -->
+    <target depends="init,compile" if="have.tests" name="-pre-pre-compile-test">
+        <mkdir dir="${build.test.classes.dir}"/>
+    </target>
+    <target name="-pre-compile-test">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="-init-source-module-properties" if="named.module.internal" name="-init-test-javac-module-properties-with-module">
+        <j2seproject3:modulename property="test.module.name" sourcepath="${test.src.dir}"/>
+        <condition else="${empty.dir}" property="javac.test.sourcepath" value="${test.src.dir}">
+            <and>
+                <isset property="test.module.name"/>
+                <length length="0" string="${test.module.name}" when="greater"/>
+            </and>
+        </condition>
+        <condition else="--patch-module ${module.name}=${test.src.dir} --add-reads ${module.name}=ALL-UNNAMED" property="javac.test.compilerargs" value="--add-reads ${test.module.name}=ALL-UNNAMED">
+            <and>
+                <isset property="test.module.name"/>
+                <length length="0" string="${test.module.name}" when="greater"/>
+            </and>
+        </condition>
+    </target>
+    <target depends="-init-source-module-properties" if="named.module.internal" name="-init-test-run-module-properties">
+        <condition else="${module.name}" property="run.test.addexport.source.module.internal" value="${test.module.name}">
+            <and>
+                <isset property="test.module.name"/>
+                <length length="0" string="${test.module.name}" when="greater"/>
+            </and>
+        </condition>
+        <fileset dir="${build.test.classes.dir}" id="run.test.packages.internal" includes="**/*.class"/>
+        <property location="${build.test.classes.dir}" name="build.test.classes.dir.abs.internal"/>
+        <pathconvert pathsep=" " property="run.test.addexports.internal" refid="run.test.packages.internal">
+            <chainedmapper>
+                <regexpmapper from="^(.*)\Q${file.separator}\E.*\.class$$" to="\1"/>
+                <filtermapper>
+                    <uniqfilter/>
+                    <replacestring from="${build.test.classes.dir.abs.internal}" to=""/>
+                </filtermapper>
+                <cutdirsmapper dirs="1"/>
+                <packagemapper from="*" to="--add-exports ${run.test.addexport.source.module.internal}/*=ALL-UNNAMED"/>
+            </chainedmapper>
+        </pathconvert>
+        <condition else="--patch-module ${module.name}=${build.test.classes.dir} --add-modules ${module.name} --add-reads ${module.name}=ALL-UNNAMED ${run.test.addexports.internal}" property="run.test.jvmargs" value="--add-modules ${test.module.name} --add-reads ${test.module.name}=ALL-UNNAMED ${run.test.addexports.internal}">
+            <and>
+                <isset property="test.module.name"/>
+                <length length="0" string="${test.module.name}" when="greater"/>
+            </and>
+        </condition>
+    </target>
+    <target depends="-init-source-module-properties" name="-init-test-module-properties-without-module" unless="named.module.internal">
+        <property name="javac.test.sourcepath" value="${empty.dir}"/>
+        <property name="javac.test.compilerargs" value=""/>
+        <property name="run.test.jvmargs" value=""/>
+    </target>
+    <target depends="-init-test-javac-module-properties-with-module,-init-test-module-properties-without-module" name="-init-test-module-properties"/>
+    <target if="do.depend.true" name="-compile-test-depend">
+        <j2seproject3:depend classpath="${javac.test.classpath}" destdir="${build.test.classes.dir}" srcdir="${test.src.dir}"/>
+    </target>
+    <target depends="init,deps-jar,compile,-init-test-module-properties,-pre-pre-compile-test,-pre-compile-test,-compile-test-depend" if="have.tests" name="-do-compile-test">
+        <j2seproject3:javac apgeneratedsrcdir="${build.test.classes.dir}" classpath="${javac.test.classpath}" debug="true" destdir="${build.test.classes.dir}" modulepath="${javac.test.modulepath}" processorpath="${javac.test.processorpath}" sourcepath="${javac.test.sourcepath}" srcdir="${test.src.dir}">
+            <customize>
+                <compilerarg line="${javac.test.compilerargs}"/>
+            </customize>
+        </j2seproject3:javac>
+        <copy todir="${build.test.classes.dir}">
+            <fileset dir="${test.src.dir}" excludes="${build.classes.excludes},${excludes}" includes="${includes}"/>
+        </copy>
+    </target>
+    <target name="-post-compile-test">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,compile,-pre-pre-compile-test,-pre-compile-test,-do-compile-test,-post-compile-test" name="compile-test"/>
+    <target name="-pre-compile-test-single">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,deps-jar,compile,-init-test-module-properties,-pre-pre-compile-test,-pre-compile-test-single" if="have.tests" name="-do-compile-test-single">
+        <fail unless="javac.includes">Must select some files in the IDE or set javac.includes</fail>
+        <j2seproject3:force-recompile destdir="${build.test.classes.dir}"/>
+        <j2seproject3:javac apgeneratedsrcdir="${build.test.classes.dir}" classpath="${javac.test.classpath}" debug="true" destdir="${build.test.classes.dir}" excludes="" includes="${javac.includes}, module-info.java" modulepath="${javac.test.modulepath}" processorpath="${javac.test.processorpath}" sourcepath="${test.src.dir}" srcdir="${test.src.dir}">
+            <customize>
+                <compilerarg line="${javac.test.compilerargs}"/>
+            </customize>
+        </j2seproject3:javac>
+        <copy todir="${build.test.classes.dir}">
+            <fileset dir="${test.src.dir}" excludes="${build.classes.excludes},${excludes}" includes="${includes}"/>
+        </copy>
+    </target>
+    <target name="-post-compile-test-single">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,compile,-pre-pre-compile-test,-pre-compile-test-single,-do-compile-test-single,-post-compile-test-single" name="compile-test-single"/>
+    <!--
+                =======================
+                TEST EXECUTION SECTION
+                =======================
+            -->
+    <target depends="init" if="have.tests" name="-pre-test-run">
+        <mkdir dir="${build.test.results.dir}"/>
+    </target>
+    <target depends="init,compile-test,-init-test-run-module-properties,-pre-test-run" if="have.tests" name="-do-test-run">
+        <j2seproject3:test includes="${includes}" testincludes="**/*Test.java"/>
+    </target>
+    <target depends="init,compile-test,-pre-test-run,-do-test-run" if="have.tests" name="-post-test-run">
+        <fail if="tests.failed" unless="ignore.failing.tests">Some tests failed; see details above.</fail>
+    </target>
+    <target depends="init" if="have.tests" name="test-report"/>
+    <target depends="init" if="netbeans.home+have.tests" name="-test-browse"/>
+    <target depends="init,compile-test,-pre-test-run,-do-test-run,test-report,-post-test-run,-test-browse" description="Run unit tests." name="test"/>
+    <target depends="init" if="have.tests" name="-pre-test-run-single">
+        <mkdir dir="${build.test.results.dir}"/>
+    </target>
+    <target depends="init,compile-test-single,-init-test-run-module-properties,-pre-test-run-single" if="have.tests" name="-do-test-run-single">
+        <fail unless="test.includes">Must select some files in the IDE or set test.includes</fail>
+        <j2seproject3:test excludes="" includes="${test.includes}" testincludes="${test.includes}"/>
+    </target>
+    <target depends="init,compile-test-single,-pre-test-run-single,-do-test-run-single" if="have.tests" name="-post-test-run-single">
+        <fail if="tests.failed" unless="ignore.failing.tests">Some tests failed; see details above.</fail>
+    </target>
+    <target depends="init,compile-test-single,-init-test-run-module-properties,-pre-test-run-single,-do-test-run-single,-post-test-run-single" description="Run single unit test." name="test-single"/>
+    <target depends="init,compile-test-single,-pre-test-run-single" if="have.tests" name="-do-test-run-single-method">
+        <fail unless="test.class">Must select some files in the IDE or set test.class</fail>
+        <fail unless="test.method">Must select some method in the IDE or set test.method</fail>
+        <j2seproject3:test excludes="" includes="${javac.includes}" testincludes="${test.class}" testmethods="${test.method}"/>
+    </target>
+    <target depends="init,compile-test-single,-pre-test-run-single,-do-test-run-single-method" if="have.tests" name="-post-test-run-single-method">
+        <fail if="tests.failed" unless="ignore.failing.tests">Some tests failed; see details above.</fail>
+    </target>
+    <target depends="init,compile-test-single,-init-test-run-module-properties,-pre-test-run-single,-do-test-run-single-method,-post-test-run-single-method" description="Run single unit test." name="test-single-method"/>
+    <!--
+                =======================
+                TEST DEBUGGING SECTION
+                =======================
+            -->
+    <target depends="init,compile-test-single,-pre-test-run-single" if="have.tests" name="-debug-start-debuggee-test">
+        <fail unless="test.class">Must select one file in the IDE or set test.class</fail>
+        <j2seproject3:test-debug excludes="" includes="${javac.includes}" testClass="${test.class}" testincludes="${javac.includes}"/>
+    </target>
+    <target depends="init,compile-test-single,-pre-test-run-single" if="have.tests" name="-debug-start-debuggee-test-method">
+        <fail unless="test.class">Must select one file in the IDE or set test.class</fail>
+        <fail unless="test.method">Must select some method in the IDE or set test.method</fail>
+        <j2seproject3:test-debug excludes="" includes="${javac.includes}" testClass="${test.class}" testMethod="${test.method}" testincludes="${test.class}" testmethods="${test.method}"/>
+    </target>
+    <target depends="init,compile-test" if="netbeans.home+have.tests" name="-debug-start-debugger-test">
+        <j2seproject1:nbjpdastart classpath="${debug.test.classpath}" name="${test.class}"/>
+    </target>
+    <target depends="init,compile-test-single,-init-test-run-module-properties,-debug-start-debugger-test,-debug-start-debuggee-test" name="debug-test"/>
+    <target depends="init,compile-test-single,-init-test-run-module-properties,-debug-start-debugger-test,-debug-start-debuggee-test-method" name="debug-test-method"/>
+    <target depends="init,-pre-debug-fix,compile-test-single" if="netbeans.home" name="-do-debug-fix-test">
+        <j2seproject1:nbjpdareload dir="${build.test.classes.dir}"/>
+    </target>
+    <target depends="init,-pre-debug-fix,-do-debug-fix-test" if="netbeans.home" name="debug-fix-test"/>
+    <!--
+                =========================
+                APPLET EXECUTION SECTION
+                =========================
+            -->
+    <target depends="init,compile-single" name="run-applet">
+        <fail unless="applet.url">Must select one file in the IDE or set applet.url</fail>
+        <j2seproject1:java classname="sun.applet.AppletViewer">
+            <customize>
+                <arg value="${applet.url}"/>
+            </customize>
+        </j2seproject1:java>
+    </target>
+    <!--
+                =========================
+                APPLET DEBUGGING  SECTION
+                =========================
+            -->
+    <target depends="init,compile-single" if="netbeans.home" name="-debug-start-debuggee-applet">
+        <fail unless="applet.url">Must select one file in the IDE or set applet.url</fail>
+        <j2seproject3:debug classname="sun.applet.AppletViewer">
+            <customizeDebuggee>
+                <arg value="${applet.url}"/>
+            </customizeDebuggee>
+        </j2seproject3:debug>
+    </target>
+    <target depends="init,compile-single,-debug-start-debugger,-debug-start-debuggee-applet" if="netbeans.home" name="debug-applet"/>
+    <!--
+                ===============
+                CLEANUP SECTION
+                ===============
+            -->
+    <target name="-deps-clean-init" unless="built-clean.properties">
+        <property location="${build.dir}/built-clean.properties" name="built-clean.properties"/>
+        <delete file="${built-clean.properties}" quiet="true"/>
+    </target>
+    <target if="already.built.clean.${basedir}" name="-warn-already-built-clean">
+        <echo level="warn" message="Cycle detected: Lab2 was already built"/>
+    </target>
+    <target depends="init,-deps-clean-init" name="deps-clean" unless="no.deps">
+        <mkdir dir="${build.dir}"/>
+        <touch file="${built-clean.properties}" verbose="false"/>
+        <property file="${built-clean.properties}" prefix="already.built.clean."/>
+        <antcall target="-warn-already-built-clean"/>
+        <propertyfile file="${built-clean.properties}">
+            <entry key="${basedir}" value=""/>
+        </propertyfile>
+    </target>
+    <target depends="init" name="-do-clean">
+        <delete dir="${build.dir}"/>
+        <delete dir="${dist.jlink.output}"/>
+        <delete dir="${dist.dir}" followsymlinks="false" includeemptydirs="true"/>
+    </target>
+    <target name="-post-clean">
+        <!-- Empty placeholder for easier customization. -->
+        <!-- You can override this target in the ../build.xml file. -->
+    </target>
+    <target depends="init,deps-clean,-do-clean,-post-clean" description="Clean build products." name="clean"/>
+    <target name="-check-call-dep">
+        <property file="${call.built.properties}" prefix="already.built."/>
+        <condition property="should.call.dep">
+            <and>
+                <not>
+                    <isset property="already.built.${call.subproject}"/>
+                </not>
+                <available file="${call.script}"/>
+            </and>
+        </condition>
+    </target>
+    <target depends="-check-call-dep" if="should.call.dep" name="-maybe-call-dep">
+        <ant antfile="${call.script}" inheritall="false" target="${call.target}">
+            <propertyset>
+                <propertyref prefix="transfer."/>
+                <mapper from="transfer.*" to="*" type="glob"/>
+            </propertyset>
+        </ant>
+    </target>
+</project>
